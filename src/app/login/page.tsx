@@ -1,27 +1,27 @@
+'use client';
+
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+
 import { Mail, Lock, ArrowRight } from 'lucide-react';
 
 export default function Login() {
-  const navigate = useNavigate();
+  const navigate = useRouter();
 
   const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     const formData = new FormData(e.currentTarget);
-    const email = String(formData.get('email')).trim().toLowerCase(); // แปลงเป็นตัวเล็กทั้งหมดและตัดช่องว่าง
+    const email = formData.get('email');
     const password = formData.get('password');
 
     // Check for admin credentials
-    if (email === 'admin@gmail.com' && password === 'admin123') {
-      // เก็บสถานะไว้ใน localStorage ว่าคนนี้คือ admin
-      localStorage.setItem('userRole', 'admin');
-      navigate('/admin');
+    if (email === 'Admin@gmail.com' && password === 'admin123') {
+      navigate.push('/admin');
     } else {
       // In a real app, authenticate here
-      // เก็บสถานะไว้ใน localStorage ว่าคนนี้คือ user ทั่วไป
-      localStorage.setItem('userRole', 'user');
-      navigate('/dashboard');
+      navigate.push('/dashboard');
     }
   };
 
@@ -53,7 +53,7 @@ export default function Login() {
                   autoComplete="email"
                   required
                   className="appearance-none relative block w-full px-3 py-3 pl-10 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm transition-colors text-text-light dark:text-text-dark"
-                  placeholder="admin@gmail.com"
+                  placeholder="jane@example.com"
                 />
               </div>
             </div>
@@ -139,7 +139,7 @@ export default function Login() {
 
         <p className="mt-8 text-center text-sm text-text-muted-light dark:text-text-muted-dark">
           Don't have an account?{' '}
-          <Link to="/signup" className="font-medium text-primary hover:text-primary-hover">
+          <Link href="/signup" className="font-medium text-primary hover:text-primary-hover">
             Sign up
           </Link>
         </p>

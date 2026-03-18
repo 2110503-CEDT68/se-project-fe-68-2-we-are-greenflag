@@ -1,14 +1,18 @@
+'use client';
+
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+
 import { User, Mail, Lock, ArrowRight } from 'lucide-react';
 
 export default function SignUp() {
-  const navigate = useNavigate();
+  const navigate = useRouter();
 
   const handleSignUp = (e: React.FormEvent) => {
     e.preventDefault();
     // In a real app, authenticate here
-    navigate('/dashboard');
+    navigate.push('/dashboard');
   };
 
   return (
@@ -138,7 +142,7 @@ export default function SignUp() {
 
           <p className="mt-8 text-center text-sm text-text-muted-light dark:text-text-muted-dark">
             Already have an account?{' '}
-            <Link to="/login" className="font-medium text-primary hover:text-primary-hover">
+            <Link href="/login" className="font-medium text-primary hover:text-primary-hover">
               Sign in
             </Link>
           </p>

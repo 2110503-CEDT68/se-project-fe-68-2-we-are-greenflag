@@ -1,6 +1,7 @@
 import React from 'react';
 import { MapPin, Star, ArrowRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
+
 
 export default function UserSpaces() {
   const spaces = [
@@ -55,7 +56,7 @@ export default function UserSpaces() {
               </div>
               <div className="mt-auto flex justify-between items-center pt-4 border-t border-border-light dark:border-border-dark">
                 <span className="font-semibold">{space.price}</span>
-                <Link to="/book" className="bg-primary/10 text-primary hover:bg-primary hover:text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                <Link href="/book" className="bg-primary/10 text-primary hover:bg-primary hover:text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                   Book Now
                 </Link>
               </div>

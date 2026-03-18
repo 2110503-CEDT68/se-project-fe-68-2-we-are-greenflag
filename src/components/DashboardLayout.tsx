@@ -1,16 +1,13 @@
-import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'; // เพิ่ม useNavigate
+'use client';
+
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+
 import { LayoutDashboard, Calendar, Users, CreditCard, Settings, LogOut, Bell, Search, Shield, Building, BarChart, CalendarCheck, IdCard, Receipt } from 'lucide-react';
 
-export default function DashboardLayout() {
-  const location = useLocation();
-  const navigate = useNavigate(); // เรียกใช้งาน useNavigate
-  const isAdmin = location.pathname.includes('/admin');
-
-  // ฟังก์ชันสำหรับ Sign Out
-  const handleLogout = () => {
-    localStorage.removeItem('userRole'); // ลบสิทธิ์การเข้าถึง
-    navigate('/login'); // เด้งกลับไปหน้า Login
-  };
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const location = usePathname();
+  const isAdmin = location?.includes('/admin');
 
   const navItems = isAdmin ? [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/admin' },
@@ -34,7 +31,7 @@ export default function DashboardLayout() {
       {/* Sidebar */}
       <aside className="w-64 bg-surface-light dark:bg-surface-dark border-r border-border-light dark:border-border-dark hidden md:flex flex-col sticky top-0 h-screen">
         <div className="p-6">
-          <Link to="/" className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-xl">W</span>
             </div>
@@ -44,11 +41,11 @@ export default function DashboardLayout() {
 
         <nav className="flex-1 px-4 py-4 space-y-1">
           {navItems.map((item) => {
-            const isActive = location.pathname === item.path;
+            const isActive = location === item.path;
             return (
               <Link
                 key={item.path}
-                to={item.path}
+                href={item.path}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
                   isActive 
                     ? 'bg-primary/10 text-primary font-medium' 
@@ -70,14 +67,10 @@ export default function DashboardLayout() {
               <p className="text-xs text-text-muted-light dark:text-text-muted-dark truncate">{isAdmin ? 'System Admin' : 'Premium Member'}</p>
             </div>
           </div>
-          {/* เพิ่ม onClick={handleLogout} ตรงปุ่มนี้ */}
-          <button 
-            onClick={handleLogout}
-            className="w-full mt-2 flex items-center gap-3 px-3 py-2 text-text-muted-light dark:text-text-muted-dark hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-          >
+          <Link href="/login" className="w-full mt-2 flex items-center gap-3 px-3 py-2 text-text-muted-light dark:text-text-muted-dark hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
             <LogOut className="w-5 h-5" />
             Sign Out
-          </button>
+          </Link>
         </div>
       </aside>
 
@@ -102,7 +95,7 @@ export default function DashboardLayout() {
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full"></span>
             </button>
             {!isAdmin && (
-              <Link to="/book" className="hidden sm:flex bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded-full text-sm font-medium transition-colors">
+              <Link href="/book" className="hidden sm:flex bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded-full text-sm font-medium transition-colors">
                 Book a Desk
               </Link>
             )}
@@ -111,7 +104,7 @@ export default function DashboardLayout() {
         </header>
 
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          <Outlet />
+          {children}
         </main>
       </div>
     </div>

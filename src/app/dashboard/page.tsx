@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
+
 import { Calendar, Clock, MapPin, CreditCard, ArrowRight, MoreHorizontal, Users, IdCard, CalendarCheck, CalendarPlus, UserPlus, Map } from 'lucide-react';
 
 export default function Dashboard() {
@@ -52,7 +53,7 @@ export default function Dashboard() {
           <section>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">Upcoming Bookings</h2>
-              <Link to="/book" className="text-sm font-medium text-primary hover:underline">View All</Link>
+              <Link href="/book" className="text-sm font-medium text-primary hover:underline">View All</Link>
             </div>
             <div className="bg-surface-light dark:bg-surface-dark rounded-2xl border border-border-light dark:border-border-dark overflow-hidden">
               {[1, 2].map((i) => (
@@ -110,7 +111,7 @@ export default function Dashboard() {
           <section>
             <h2 className="text-xl font-bold mb-4">Quick Actions</h2>
             <div className="grid grid-cols-2 gap-4">
-              <Link to="/book" className="bg-surface-light dark:bg-surface-dark p-4 rounded-2xl border border-border-light dark:border-border-dark hover:border-primary transition-colors flex flex-col items-center text-center gap-2">
+              <Link href="/book" className="bg-surface-light dark:bg-surface-dark p-4 rounded-2xl border border-border-light dark:border-border-dark hover:border-primary transition-colors flex flex-col items-center text-center gap-2">
                 <div className="w-10 h-10 bg-primary/10 text-primary rounded-full flex items-center justify-center">
                   <CalendarPlus className="w-5 h-5" />
                 </div>
@@ -141,7 +142,7 @@ export default function Dashboard() {
           <section>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">Community</h2>
-              <Link to="/community" className="text-sm font-medium text-primary hover:underline">View All</Link>
+              <Link href="/community" className="text-sm font-medium text-primary hover:underline">View All</Link>
             </div>
             <div className="bg-surface-light dark:bg-surface-dark rounded-2xl border border-border-light dark:border-border-dark p-4 space-y-4">
               <div className="flex gap-4 items-start">

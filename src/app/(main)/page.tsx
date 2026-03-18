@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
+
 import { MapPin, Star, ArrowRight, CheckCircle2 } from 'lucide-react';
 
 export default function Home() {
@@ -25,10 +26,10 @@ export default function Home() {
             Premium co-working spaces designed for productivity, collaboration, and growth. Find your perfect spot today.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/signup" className="bg-primary hover:bg-primary-hover text-white px-8 py-4 rounded-full font-medium text-lg transition-colors">
+            <Link href="/signup" className="bg-primary hover:bg-primary-hover text-white px-8 py-4 rounded-full font-medium text-lg transition-colors">
               Start Free Trial
             </Link>
-            <Link to="/dashboard" className="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark hover:bg-gray-50 dark:hover:bg-gray-800 px-8 py-4 rounded-full font-medium text-lg transition-colors">
+            <Link href="/dashboard" className="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark hover:bg-gray-50 dark:hover:bg-gray-800 px-8 py-4 rounded-full font-medium text-lg transition-colors">
               Explore Locations
             </Link>
           </div>
@@ -42,7 +43,7 @@ export default function Home() {
             <h2 className="text-2xl font-bold mb-2">Popular Near You</h2>
             <p className="text-text-muted-light dark:text-text-muted-dark">Discover highly-rated spaces in your area.</p>
           </div>
-          <Link to="/" className="text-primary font-medium flex items-center gap-1 hover:underline">
+          <Link href="/" className="text-primary font-medium flex items-center gap-1 hover:underline">
             View All <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
@@ -65,7 +66,7 @@ export default function Home() {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="font-semibold">From $25/day</span>
-                  <Link to="/book" className="bg-primary/10 text-primary hover:bg-primary hover:text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                  <Link href="/book" className="bg-primary/10 text-primary hover:bg-primary hover:text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                     Book Now
                   </Link>
                 </div>
