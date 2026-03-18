@@ -1,8 +1,38 @@
-import Link from 'next/link';
+'use client';
 
-import { Calendar, Clock, MapPin, CreditCard, ArrowRight, MoreHorizontal, Users, IdCard, CalendarCheck, CalendarPlus, UserPlus, Map } from 'lucide-react';
+import React, { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation'; // <-- เพิ่มตัวนี้สำหรับพาไปหน้าอื่น
+import { 
+  Calendar, Clock, MapPin, CreditCard, ArrowRight, 
+  MoreHorizontal, Users, IdCard, CalendarCheck, 
+  CalendarPlus, UserPlus, Map, 
+  Edit, Trash2 
+} from 'lucide-react';
 
 export default function Dashboard() {
+  const router = useRouter();
+  
+  // 1. สร้าง State เก็บข้อมูลการจอง เพื่อให้ลบออกจากหน้าจอได้
+  const [bookings, setBookings] = useState([
+    { id: 1, type: 'Hot Desk', day: 15, month: 'Sep', time: '09:00 AM - 05:00 PM', location: 'Downtown Hub' },
+    { id: 2, type: 'Meeting Room A', day: 16, month: 'Sep', time: '09:00 AM - 05:00 PM', location: 'Downtown Hub' }
+  ]);
+
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+
+  // 2. ฟังก์ชัน Edit: พาไปหน้า /book และไม่มี alert
+  const handleUpdate = (id: number) => {
+    setOpenMenuId(null); // ปิดเมนูก่อน
+    router.push('/book'); // พาไปหน้าจอง
+  };
+
+  // 3. ฟังก์ชัน Delete: ลบออกจาก State ทันที และไม่มี alert
+  const handleDelete = (id: number) => {
+    setBookings((prevBookings) => prevBookings.filter((booking) => booking.id !== id));
+    setOpenMenuId(null);
+  };
+
   return (
     <div className="max-w-6xl mx-auto space-y-8">
       <div>
@@ -55,27 +85,62 @@ export default function Dashboard() {
               <h2 className="text-xl font-bold">Upcoming Bookings</h2>
               <Link href="/book" className="text-sm font-medium text-primary hover:underline">View All</Link>
             </div>
-            <div className="bg-surface-light dark:bg-surface-dark rounded-2xl border border-border-light dark:border-border-dark overflow-hidden">
-              {[1, 2].map((i) => (
-                <div key={i} className="p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-border-light dark:border-border-dark last:border-0">
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-xl flex flex-col items-center justify-center shrink-0">
-                      <span className="text-xs font-medium text-text-muted-light dark:text-text-muted-dark uppercase">Sep</span>
-                      <span className="text-xl font-bold">{14 + i}</span>
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-lg">{i === 1 ? 'Hot Desk' : 'Meeting Room A'}</h3>
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-sm text-text-muted-light dark:text-text-muted-dark mt-1">
-                        <span className="flex items-center gap-1"><Clock className="w-4 h-4" /> 09:00 AM - 05:00 PM</span>
-                        <span className="flex items-center gap-1"><MapPin className="w-4 h-4" /> Downtown Hub</span>
+            <div className="bg-surface-light dark:bg-surface-dark rounded-2xl border border-border-light dark:border-border-dark">
+              
+              {/* 4. เปลี่ยนมาวนลูปจาก State bookings แทน */}
+              {bookings.length > 0 ? (
+                bookings.map((booking) => (
+                  <div key={booking.id} className="p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-border-light dark:border-border-dark last:border-0 relative">
+                    <div className="flex items-center gap-4">
+                      <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-xl flex flex-col items-center justify-center shrink-0">
+                        <span className="text-xs font-medium text-text-muted-light dark:text-text-muted-dark uppercase">{booking.month}</span>
+                        <span className="text-xl font-bold">{booking.day}</span>
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-lg">{booking.type}</h3>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-sm text-text-muted-light dark:text-text-muted-dark mt-1">
+                          <span className="flex items-center gap-1"><Clock className="w-4 h-4" /> {booking.time}</span>
+                          <span className="flex items-center gap-1"><MapPin className="w-4 h-4" /> {booking.location}</span>
+                        </div>
                       </div>
                     </div>
+                    
+                    {/* ปุ่มจุดสามจุดและ Dropdown Menu */}
+                    <div>
+                      <button 
+                        onClick={() => setOpenMenuId(openMenuId === booking.id ? null : booking.id)}
+                        className="p-2 text-text-muted-light dark:text-text-muted-dark hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors focus:outline-none"
+                      >
+                        <MoreHorizontal className="w-5 h-5" />
+                      </button>
+
+                      {/* Dropdown Menu */}
+                      {openMenuId === booking.id && (
+                        <div className="absolute right-6 top-14 w-48 bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-border-light dark:border-border-dark py-1 z-10 overflow-hidden">
+                          <button
+                            onClick={() => handleUpdate(booking.id)}
+                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-2 transition-colors"
+                          >
+                            <Edit className="w-4 h-4" />
+                            Edit Booking
+                          </button>
+                          <button
+                            onClick={() => handleDelete(booking.id)}
+                            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Cancel Booking
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <button className="p-2 text-text-muted-light dark:text-text-muted-dark hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
-                    <MoreHorizontal className="w-5 h-5" />
-                  </button>
+                ))
+              ) : (
+                <div className="p-8 text-center text-text-muted-light dark:text-text-muted-dark">
+                  No upcoming bookings.
                 </div>
-              ))}
+              )}
             </div>
           </section>
 
