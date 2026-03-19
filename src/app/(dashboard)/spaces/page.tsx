@@ -2,15 +2,14 @@ import React from 'react';
 import { MapPin, Star, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
-
 export default function UserSpaces() {
   const spaces = [
-    { id: 1, name: 'Downtown Hub', type: 'Hot Desk', price: '$25/day', rating: 4.8, distance: '1.2 miles', image: 'office1' },
-    { id: 2, name: 'Creative District', type: 'Private Office', price: '$120/day', rating: 4.9, distance: '2.5 miles', image: 'office2' },
-    { id: 3, name: 'Tech Park', type: 'Meeting Room', price: '$45/hour', rating: 4.7, distance: '3.1 miles', image: 'office3' },
-    { id: 4, name: 'Financial Center', type: 'Dedicated Desk', price: '$40/day', rating: 4.6, distance: '0.8 miles', image: 'office4' },
-    { id: 5, name: 'Innovation Lab', type: 'Hot Desk', price: '$30/day', rating: 4.9, distance: '4.2 miles', image: 'office5' },
-    { id: 6, name: 'Startup Garage', type: 'Meeting Room', price: '$35/hour', rating: 4.5, distance: '1.5 miles', image: 'office6' },
+    { id: 1, name: 'Downtown Hub', type: 'Hot Desk', price: '$25/day', rating: 4.8, distance: '1.2 miles', image: 'https://creativespark.ie/files/2023/DowntownH-1.jpg' },
+    { id: 2, name: 'Creative District', type: 'Private Office', price: '$120/day', rating: 4.9, distance: '2.5 miles', image: 'https://cdn.trendhunterstatic.com/thumbs/398/creative-coworking-spaces.jpeg' },
+    { id: 3, name: 'Tech Park', type: 'Meeting Room', price: '$45/hour', rating: 4.7, distance: '3.1 miles', image: 'https://www.truedigitalpark.com/public/assets/images/workplace/co-working-space/TDPK-Co-working-center-tables.jpg' },
+    { id: 4, name: 'Financial Center', type: 'Dedicated Desk', price: '$40/day', rating: 4.6, distance: '0.8 miles', image: 'https://www.wework.com/ideas/wp-content/uploads/sites/4/2025/05/Web_72DPI-20202707200BiscayneBlvd14.jpg?fit=1120%2C630' },
+    { id: 5, name: 'Innovation Lab', type: 'Hot Desk', price: '$30/day', rating: 4.9, distance: '4.2 miles', image: 'https://www.crbgroup.com/wp-content/uploads/2021/10/BioLabs-Lobby-1280-1740x640.jpg' },
+    { id: 6, name: 'Startup Garage', type: 'Meeting Room', price: '$35/hour', rating: 4.5, distance: '1.5 miles', image: 'https://media.istockphoto.com/id/1302652606/photo/two-young-men-working-together-on-their-startup-company-in-a-garage.jpg?s=612x612&w=0&k=20&c=vWwOKA0ftMnDr44iAqMuVNGQsa-FDCymq6FYQtsGUGg=' },
   ];
 
   return (
@@ -39,7 +38,8 @@ export default function UserSpaces() {
         {spaces.map((space) => (
           <div key={space.id} className="bg-surface-light dark:bg-surface-dark rounded-2xl overflow-hidden border border-border-light dark:border-border-dark flex flex-col">
             <div className="h-48 relative">
-              <img src={`https://picsum.photos/seed/${space.image}/600/400`} alt={space.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              {/* เปลี่ยน src เป็น space.image เพื่อใช้ลิงก์จาก Array โดยตรง */}
+              <img src={space.image} alt={space.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               <div className="absolute top-3 right-3 bg-white/90 dark:bg-black/90 backdrop-blur-sm px-2 py-1 rounded-md flex items-center gap-1 text-sm font-medium">
                 <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
                 {space.rating}
