@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import axios from 'axios';
 import { 
   Calendar as CalendarIcon, Clock, MapPin, CreditCard, ArrowRight, 
   MoreHorizontal, Users, IdCard, CalendarCheck, 
@@ -9,8 +10,9 @@ import {
   Edit, Trash2, X 
 } from 'lucide-react';
 
+// ✅ เปลี่ยน id เป็น string เพื่อรองรับ _id ของ MongoDB
 type Booking = {
-  id: number;
+  id: string;
   type: string;
   date: string;
   startTime: string;
@@ -19,14 +21,41 @@ type Booking = {
 };
 
 export default function Dashboard() {
-  const [bookings, setBookings] = useState<Booking[]>([
-    { id: 1, type: 'Hot Desk', date: '2026-09-15', startTime: '09:00', endTime: '17:00', location: 'Downtown Hub' },
-    { id: 2, type: 'Meeting Room A', date: '2026-09-16', startTime: '09:00', endTime: '17:00', location: 'Downtown Hub' }
-  ]);
-
-  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
+
+  // ✅ 1. ดึงข้อมูลจาก Backend มาแสดงผล
+  const fetchBookings = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get('http://localhost:5000/api/v1/reservations', {
+        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true
+      });
+
+      // แปลงข้อมูลจาก Backend ให้เข้ากับ UI เดิมของคุณ
+      const formattedBookings = res.data.data.map((r: any) => {
+        const d = new Date(r.date);
+        return {
+          id: r._id,
+          type: r.coworking?.type ? r.coworking.type.charAt(0).toUpperCase() + r.coworking.type.slice(1) : 'Workspace',
+          date: !isNaN(d.getTime()) ? d.toISOString().split('T')[0] : '', // YYYY-MM-DD
+          startTime: !isNaN(d.getTime()) ? d.toTimeString().slice(0, 5) : '09:00', // HH:mm
+          endTime: !isNaN(d.getTime()) ? new Date(d.getTime() + 2 * 60 * 60 * 1000).toTimeString().slice(0, 5) : '11:00',
+          location: r.coworking?.name || 'Unknown Location'
+        };
+      });
+      setBookings(formattedBookings);
+    } catch (err) {
+      console.error('Error fetching bookings:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchBookings();
+  }, []);
 
   const handleEditClick = (booking: Booking) => {
     setEditingBooking({ ...booking });
@@ -34,17 +63,47 @@ export default function Dashboard() {
     setOpenMenuId(null);
   };
 
-  const handleSaveChanges = () => {
+  // ✅ 2. อัปเดตข้อมูลไปที่ Backend (Edit)
+  const handleSaveChanges = async () => {
     if (editingBooking) {
-      setBookings(bookings.map(b => (b.id === editingBooking.id ? editingBooking : b)));
-      setIsEditModalOpen(false);
-      setEditingBooking(null);
+      try {
+        const token = localStorage.getItem('token');
+        // นำวันที่และเวลาที่แก้ใน Modal มารวมเป็น ISO String เพื่อส่งให้ Backend
+        const isoDate = new Date(`${editingBooking.date}T${editingBooking.startTime}:00`).toISOString();
+
+        await axios.put(`http://localhost:5000/api/v1/reservations/${editingBooking.id}`, 
+          { date: isoDate }, 
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            withCredentials: true
+          }
+        );
+
+        setIsEditModalOpen(false);
+        setEditingBooking(null);
+        fetchBookings(); // โหลดข้อมูลใหม่
+        alert('อัปเดตการจองสำเร็จ!');
+      } catch (err) {
+        console.error(err);
+        alert('แก้ไขไม่สำเร็จ โปรดตรวจสอบข้อมูล');
+      }
     }
   };
 
-  const handleDelete = (id: number) => {
-    setBookings((prevBookings) => prevBookings.filter((booking) => booking.id !== id));
-    setOpenMenuId(null);
+  // ✅ 3. ลบข้อมูลใน Backend (Delete)
+  const handleDelete = async (id: string) => {
+    if (!confirm('คุณแน่ใจใช่ไหมที่จะยกเลิกการจองนี้?')) return;
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`http://localhost:5000/api/v1/reservations/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true
+      });
+      setBookings((prevBookings) => prevBookings.filter((booking) => booking.id !== id));
+      setOpenMenuId(null);
+    } catch (err) {
+      alert('ไม่สามารถลบการจองได้');
+    }
   };
 
   const getDisplayDate = (dateStr: string) => {
@@ -293,11 +352,10 @@ export default function Dashboard() {
                     value={editingBooking.location}
                     onChange={(e) => setEditingBooking({...editingBooking, location: e.target.value})}
                     className="w-full pl-9 pr-3 py-2.5 bg-gray-50 dark:bg-background-dark border border-gray-200 dark:border-border-dark rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-orange-500 appearance-none"
+                    disabled
                   >
-                    <option value="Downtown Hub">Downtown Hub</option>
-                    <option value="Tech Park">Tech Park</option>
-                    <option value="Creative District">Creative District</option>
-                    <option value="Innovation Lab">Innovation Lab</option>
+                    {/* ทำให้มันแสดงชื่อสถานที่จริง (Disable ไว้เพื่อกันไม่ให้แก้ชื่อข้ามสาขา) */}
+                    <option value={editingBooking.location}>{editingBooking.location}</option>
                   </select>
                 </div>
               </div>

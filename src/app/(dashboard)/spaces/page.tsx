@@ -1,72 +1,134 @@
-import React from 'react';
-import { MapPin, Star } from 'lucide-react';
-import Link from 'next/link';
+'use client';
 
-export default function UserSpaces() {
-  const spaces = [
-    { id: 1, name: 'Downtown Hub', type: 'Hot Desk', price: '$25/day', rating: 4.8, distance: '1.2 miles', image: 'https://creativespark.ie/files/2023/DowntownH-1.jpg' },
-    { id: 2, name: 'Creative District', type: 'Private Office', price: '$120/day', rating: 4.9, distance: '2.5 miles', image: 'https://cdn.trendhunterstatic.com/thumbs/398/creative-coworking-spaces.jpeg' },
-    { id: 3, name: 'Tech Park', type: 'Meeting Room', price: '$45/hour', rating: 4.7, distance: '3.1 miles', image: 'https://www.truedigitalpark.com/public/assets/images/workplace/co-working-space/TDPK-Co-working-center-tables.jpg' },
-    { id: 4, name: 'Financial Center', type: 'Dedicated Desk', price: '$40/day', rating: 4.6, distance: '0.8 miles', image: 'https://www.wework.com/ideas/wp-content/uploads/sites/4/2025/05/Web_72DPI-20202707200BiscayneBlvd14.jpg?fit=1120%2C630' },
-    { id: 5, name: 'Innovation Lab', type: 'Hot Desk', price: '$30/day', rating: 4.9, distance: '4.2 miles', image: 'https://www.crbgroup.com/wp-content/uploads/2021/10/BioLabs-Lobby-1280-1740x640.jpg' },
-    { id: 6, name: 'Startup Garage', type: 'Meeting Room', price: '$35/hour', rating: 4.5, distance: '1.5 miles', image: 'https://media.istockphoto.com/id/1302652606/photo/two-young-men-working-together-on-their-startup-company-in-a-garage.jpg?s=612x612&w=0&k=20&c=vWwOKA0ftMnDr44iAqMuVNGQsa-FDCymq6FYQtsGUGg=' },
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { MapPin, Star, Loader2 } from 'lucide-react';
+import axios from 'axios';
+
+interface Coworking {
+  _id: string;
+  name: string;
+  address: string;
+  price_per_hour: number;
+  type: string;
+  rating: number;
+  picture?: string; // รองรับกรณีที่มีหรือไม่มีรูปใน DB
+}
+
+export default function SpacesPage() {
+  const [spaces, setSpaces] = useState<Coworking[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // 📸 ชุดรูปภาพสวยๆ สำรอง (กรณีรูปลิงก์เสียหรือไม่โหลด)
+  const fallbackImages = [
+    'https://images.unsplash.com/photo-1527192491265-7e15c55b1ed2?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1556761175-4b46a572b786?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1568992687947-868a62a9f521?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1604328698692-f76ea9498e76?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1572025442646-866d16c84a54?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1517502884422-41eaead166d4?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1628611225249-6c3c7c689552?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=800&q=80'
   ];
 
+  useEffect(() => {
+    const fetchSpaces = async () => {
+      try {
+        const res = await axios.get('http://localhost:5000/api/v1/coworkings');
+        setSpaces(res.data.data);
+      } catch (err) {
+        console.error('Error fetching spaces:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSpaces();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-[60vh]">
+        <Loader2 className="w-10 h-10 animate-spin text-[#ea580c]" />
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Browse Spaces</h1>
-          <p className="text-text-muted-light dark:text-text-muted-dark">Find and book the perfect workspace for your needs.</p>
-        </div>
-        <div className="flex gap-2">
-          <select className="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
-            <option>All Types</option>
-            <option>Hot Desk</option>
-            <option>Private Office</option>
-            <option>Meeting Room</option>
-          </select>
-          <select className="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
-            <option>Sort by: Distance</option>
-            <option>Sort by: Rating</option>
-            <option>Sort by: Price (Low to High)</option>
-          </select>
-        </div>
+    <div className="max-w-7xl mx-auto space-y-6">
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Available Spaces</h1>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {spaces.map((space, index) => {
+          // ดึงรูปจาก DB มาก่อน ถ้าไม่มีให้ใช้รูปสำรอง
+          const defaultImage = space.picture || fallbackImages[index % fallbackImages.length];
+
+          return (
+            <div 
+              key={space._id} 
+              className="bg-white dark:bg-surface-dark border border-gray-100 dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col"
+            >
+              {/* --- โซนรูปภาพ --- */}
+              <div className="relative h-48 w-full bg-gray-100 dark:bg-gray-800">
+                <img 
+                  src={defaultImage} 
+                  alt={space.name} 
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    // 🚀 ไม้ตาย: ถ้ารูปโหลดไม่ขึ้น (รูปแตก) ให้ยัดรูปสำรองเข้าไปแทนอัตโนมัติ!
+                    (e.target as HTMLImageElement).src = fallbackImages[index % fallbackImages.length];
+                  }}
+                />
+                
+                {/* ป้าย Type มุมซ้ายบน */}
+                <div className="absolute top-3 left-3 bg-[#ea580c] text-white text-[10px] font-bold px-2 py-1.5 rounded uppercase tracking-wider shadow-sm">
+                  {space.type || 'WORKSPACE'}
+                </div>
+                
+                {/* ป้าย Rating มุมขวาบน */}
+                <div className="absolute top-3 right-3 bg-white text-gray-900 text-[11px] font-bold px-2 py-1.5 rounded flex items-center gap-1 shadow-sm">
+                  <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
+                  {space.rating || '4.5'}
+                </div>
+              </div>
+
+              {/* --- โซนรายละเอียด --- */}
+              <div className="p-5 flex flex-col flex-1">
+                <h3 className="font-bold text-lg mb-1.5 text-gray-900 dark:text-white line-clamp-1">
+                  {space.name}
+                </h3>
+                
+                <p className="text-sm text-gray-500 dark:text-gray-400 flex items-start gap-1.5 mb-6 line-clamp-1">
+                  <MapPin className="w-4 h-4 shrink-0 mt-0.5" />
+                  {space.address}
+                </p>
+                
+                <div className="mt-auto pt-4 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                  <div className="font-bold text-sm text-gray-900 dark:text-white">
+                    ${space.price_per_hour}<span className="text-xs text-gray-500 font-normal">/hr</span>
+                  </div>
+                  
+                  {/* ปุ่ม Book Now ที่จะส่งข้อมูลไปหน้า /book */}
+                  <Link 
+                    href={`/book?id=${space._id}&name=${encodeURIComponent(space.name)}&image=${encodeURIComponent(defaultImage)}&price=${space.price_per_hour}&type=${space.type}`}
+                    className="text-[#ea580c] hover:text-[#c2410c] font-semibold text-sm transition-colors"
+                  >
+                    Book Now
+                  </Link>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {spaces.map((space) => (
-          <div key={space.id} className="bg-surface-light dark:bg-surface-dark rounded-2xl overflow-hidden border border-border-light dark:border-border-dark flex flex-col">
-            <div className="h-48 relative">
-              <img src={space.image} alt={space.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-              <div className="absolute top-3 right-3 bg-white/90 dark:bg-black/90 backdrop-blur-sm px-2 py-1 rounded-md flex items-center gap-1 text-sm font-medium">
-                <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                {space.rating}
-              </div>
-              <div className="absolute top-3 left-3 bg-primary text-white px-2 py-1 rounded-md text-xs font-medium">
-                {space.type}
-              </div>
-            </div>
-            <div className="p-5 flex-1 flex flex-col">
-              <h3 className="font-bold text-lg mb-1">{space.name}</h3>
-              <div className="flex items-center gap-1 text-text-muted-light dark:text-text-muted-dark text-sm mb-4">
-                <MapPin className="w-4 h-4" />
-                {space.distance} away
-              </div>
-              <div className="mt-auto flex justify-between items-center pt-4 border-t border-border-light dark:border-border-dark">
-                <span className="font-semibold">{space.price}</span>
-                {/* 🔴 ส่งค่า name, image, type และ price ไปที่หน้า /book */}
-                <Link 
-                  href={`/book?name=${encodeURIComponent(space.name)}&image=${encodeURIComponent(space.image)}&type=${encodeURIComponent(space.type)}&price=${encodeURIComponent(space.price)}`}
-                  className="bg-primary/10 text-primary hover:bg-primary hover:text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                >
-                  Book Now
-                </Link>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+      {spaces.length === 0 && (
+        <div className="text-center py-12 text-gray-500">
+          No spaces available at the moment.
+        </div>
+      )}
     </div>
   );
 }

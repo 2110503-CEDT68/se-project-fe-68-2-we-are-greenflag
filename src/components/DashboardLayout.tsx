@@ -1,7 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import axios from 'axios';
 import { usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 import { LayoutDashboard, Calendar, Users, CreditCard, Settings, LogOut, Bell, Search, Shield, Building, BarChart, CalendarCheck, IdCard, Receipt } from 'lucide-react';
 
@@ -25,6 +27,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { icon: Receipt, label: 'Invoices', path: '/invoices' },
     { icon: Settings, label: 'Settings', path: '/settings' },
   ];
+  
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      // 1. เรียก API เพื่อเคลียร์ Cookie ฝั่ง Backend
+      await axios.get('http://localhost:5000/api/v1/auth/logout', {
+        withCredentials: true
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      // 2. ไม่ว่าจะสำเร็จหรือพัง ก็ลบ Token ในเครื่องทิ้ง
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('token');
+        localStorage.removeItem('userRole');
+      }
+      // 3. เด้งกลับไปหน้า Login
+      router.push('/login');
+    }
+  };
 
   return (
     <div className="min-h-screen flex bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark">
@@ -67,10 +90,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <p className="text-xs text-text-muted-light dark:text-text-muted-dark truncate">{isAdmin ? 'System Admin' : 'Premium Member'}</p>
             </div>
           </div>
-          <Link href="/login" className="w-full mt-2 flex items-center gap-3 px-3 py-2 text-text-muted-light dark:text-text-muted-dark hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
+          
+          {/* ✅ เปลี่ยนจาก <Link> เป็น <button> และเรียกใช้ handleLogout ที่นี่ */}
+          <button 
+            onClick={handleLogout} 
+            className="w-full text-left mt-2 flex items-center gap-3 px-3 py-2 text-text-muted-light dark:text-text-muted-dark hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-red-500 rounded-lg transition-colors"
+          >
             <LogOut className="w-5 h-5" />
             Sign Out
-          </Link>
+          </button>
         </div>
       </aside>
 

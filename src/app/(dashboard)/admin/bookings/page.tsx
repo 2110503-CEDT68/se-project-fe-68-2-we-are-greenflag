@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Filter, MoreVertical, Edit, Trash2, X, Calendar as CalendarIcon, Clock, MapPin, CheckCircle2 } from 'lucide-react';
+import axios from 'axios';
 
 type Booking = {
   id: string;
@@ -15,18 +16,46 @@ type Booking = {
 };
 
 export default function AdminBookings() {
-  const [bookings, setBookings] = useState<Booking[]>([
-    { id: 'BK-1042', user: 'Alex Johnson', type: 'Meeting Room Alpha', location: 'Downtown Hub', date: '2026-03-20', startTime: '14:00', endTime: '16:00', status: 'Upcoming' },
-    { id: 'BK-1041', user: 'Sarah Smith', type: 'Hot Desk', location: 'Downtown Hub', date: '2026-03-20', startTime: '09:00', endTime: '17:00', status: 'Active' },
-    { id: 'BK-1040', user: 'Michael Chen', type: 'Private Office 101', location: 'Tech Park', date: '2026-03-19', startTime: '09:00', endTime: '17:00', status: 'Completed' },
-    { id: 'BK-1039', user: 'Emma Davis', type: 'Meeting Room Beta', location: 'Creative District', date: '2026-03-19', startTime: '10:00', endTime: '11:00', status: 'Completed' },
-  ]);
-
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const menuRef = useRef<HTMLTableSectionElement>(null);
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
+
+  // ✅ 1. ดึงข้อมูลการจองของ "ทุกคน" (Admin View Any Booking - ข้อ 10)
+  const fetchBookings = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      // แอดมินยิง GET /reservations ระบบ Backend จะรู้จาก Token ว่าเป็น Admin และคืนค่าของทุกคนมาให้
+      const res = await axios.get('http://localhost:5000/api/v1/reservations', {
+        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true
+      });
+
+      // แมปข้อมูลจาก Backend เข้าฟอร์แมตของตาราง UI
+      const formattedBookings = res.data.data.map((r: any) => {
+        const d = new Date(r.date);
+        return {
+          id: r._id,
+          user: r.user?.name || 'Unknown User', // ดึงชื่อ User จาก Populated data
+          type: r.coworking?.type ? r.coworking.type.charAt(0).toUpperCase() + r.coworking.type.slice(1) : 'Workspace',
+          location: r.coworking?.name || 'Unknown Location',
+          date: !isNaN(d.getTime()) ? d.toISOString().split('T')[0] : '', 
+          startTime: !isNaN(d.getTime()) ? d.toTimeString().slice(0, 5) : '09:00',
+          endTime: !isNaN(d.getTime()) ? new Date(d.getTime() + 2 * 60 * 60 * 1000).toTimeString().slice(0, 5) : '11:00',
+          status: 'Active' // จำลอง Status เนื่องจากใน Model ของคุณอาจจะยังไม่มี Field status ของ Reservation
+        };
+      });
+      setBookings(formattedBookings);
+    } catch (err) {
+      console.error('Error fetching admin bookings:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchBookings();
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -38,9 +67,21 @@ export default function AdminBookings() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleDelete = (id: string) => {
-    setBookings(bookings.filter(booking => booking.id !== id));
-    setOpenMenuId(null);
+  // ✅ 2. ลบการจองของใครก็ได้ (Admin Delete Any Booking - ข้อ 12)
+  const handleDelete = async (id: string) => {
+    if (!confirm('คุณแน่ใจใช่ไหมที่จะลบการจองนี้? (การลบในฐานะ Admin)')) return;
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`http://localhost:5000/api/v1/reservations/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true
+      });
+      // ลบออกจาก State ทันทีที่ลบใน DB สำเร็จ
+      setBookings(bookings.filter(booking => booking.id !== id));
+      setOpenMenuId(null);
+    } catch (err) {
+      alert('ไม่สามารถลบรายการได้');
+    }
   };
 
   const handleEditClick = (booking: Booking) => {
@@ -49,11 +90,30 @@ export default function AdminBookings() {
     setOpenMenuId(null);
   };
 
-  const handleSaveChanges = () => {
+  // ✅ 3. แก้ไขการจองของใครก็ได้ (Admin Edit Any Booking - ข้อ 11)
+  const handleSaveChanges = async () => {
     if (editingBooking) {
-      setBookings(bookings.map(b => (b.id === editingBooking.id ? editingBooking : b)));
-      setIsEditModalOpen(false);
-      setEditingBooking(null);
+      try {
+        const token = localStorage.getItem('token');
+        // นำ Date และ Time มาประกอบกันเป็น ISO String เพื่อส่งให้ Backend
+        const isoDate = new Date(`${editingBooking.date}T${editingBooking.startTime}:00`).toISOString();
+
+        await axios.put(`http://localhost:5000/api/v1/reservations/${editingBooking.id}`, 
+          { date: isoDate }, // อัปเดตฟิลด์วันที่
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            withCredentials: true
+          }
+        );
+
+        setIsEditModalOpen(false);
+        setEditingBooking(null);
+        fetchBookings(); // ดึงข้อมูลใหม่มาแสดง
+        alert('อัปเดตการจองสำเร็จ!');
+      } catch (err) {
+        console.error(err);
+        alert('ไม่สามารถแก้ไขข้อมูลได้ โปรดตรวจสอบว่าวันที่ถูกต้องและไม่ขัดเงื่อนไข');
+      }
     }
   };
 
@@ -73,8 +133,8 @@ export default function AdminBookings() {
     <div className="space-y-6 relative">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Bookings</h1>
-          <p className="text-text-muted-light dark:text-text-muted-dark">View and manage all workspace reservations.</p>
+          <h1 className="text-2xl font-bold">Bookings Management</h1>
+          <p className="text-text-muted-light dark:text-text-muted-dark">View and manage all workspace reservations across the system.</p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <div className="relative flex-1 sm:w-64">
@@ -106,12 +166,13 @@ export default function AdminBookings() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border-light dark:divide-border-dark" ref={menuRef}>
-              {bookings.map((booking,index) => {
+              {bookings.map((booking, index) => {
                 const isBottomRow = index >= bookings.length - 2;
                 return (
-                
                 <tr key={booking.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                  <td className="p-4 font-medium text-sm whitespace-nowrap">{booking.id}</td>
+                  <td className="p-4 font-medium text-sm whitespace-nowrap">
+                    <span className="text-xs text-gray-400">ID:</span> {booking.id.slice(-6).toUpperCase()}
+                  </td>
                   <td className="p-4 whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs shrink-0">
@@ -164,6 +225,14 @@ export default function AdminBookings() {
                   </td>
                 </tr>
               )})}
+              
+              {bookings.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="p-8 text-center text-text-muted-light">
+                    ไม่พบข้อมูลการจองในระบบ
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -175,7 +244,7 @@ export default function AdminBookings() {
           <div className="bg-white dark:bg-surface-dark rounded-xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
             {/* Header */}
             <div className="flex justify-between items-center p-6 pb-4">
-              <h2 className="text-xl font-bold">Edit Booking</h2>
+              <h2 className="text-xl font-bold">Edit Booking (Admin)</h2>
               <button 
                 onClick={() => setIsEditModalOpen(false)}
                 className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
@@ -189,20 +258,17 @@ export default function AdminBookings() {
             {/* ฟอร์มแก้ไข */}
             <div className="px-6 pb-6 space-y-5">
               
-              {/* 1. Location (Dropdown) */}
+              {/* 1. Location (Disabled for safety, shows correct name) */}
               <div>
                 <label className="block text-sm font-medium mb-1.5 text-gray-700 dark:text-gray-300">Location</label>
                 <div className="relative">
                   <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <select 
                     value={editingBooking.location}
-                    onChange={(e) => setEditingBooking({...editingBooking, location: e.target.value})}
-                    className="w-full pl-9 pr-3 py-2.5 bg-gray-50 dark:bg-background-dark border border-gray-200 dark:border-border-dark rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-orange-500 appearance-none"
+                    className="w-full pl-9 pr-3 py-2.5 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-border-dark rounded-lg text-sm text-gray-500 appearance-none cursor-not-allowed"
+                    disabled
                   >
-                    <option value="Downtown Hub">Downtown Hub</option>
-                    <option value="Tech Park">Tech Park</option>
-                    <option value="Creative District">Creative District</option>
-                    <option value="Innovation Lab">Innovation Lab</option>
+                    <option value={editingBooking.location}>{editingBooking.location}</option>
                   </select>
                 </div>
               </div>
@@ -214,8 +280,8 @@ export default function AdminBookings() {
                   <input 
                     type="text" 
                     value={editingBooking.type}
-                    onChange={(e) => setEditingBooking({...editingBooking, type: e.target.value})}
-                    className="w-full px-3 py-2.5 bg-gray-50 dark:bg-background-dark border border-gray-200 dark:border-border-dark rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-orange-500"
+                    className="w-full px-3 py-2.5 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-border-dark rounded-lg text-sm text-gray-500 cursor-not-allowed"
+                    disabled
                   />
                 </div>
                 <div>
@@ -225,7 +291,7 @@ export default function AdminBookings() {
                     <select 
                       value={editingBooking.status}
                       onChange={(e) => setEditingBooking({...editingBooking, status: e.target.value})}
-                      className="w-full pl-9 pr-3 py-2.5 bg-gray-50 dark:bg-background-dark border border-gray-200 dark:border-border-dark rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-orange-500 appearance-none"
+                      className="w-full pl-9 pr-3 py-2.5 bg-gray-50 dark:bg-background-dark border border-gray-200 dark:border-border-dark rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary appearance-none"
                     >
                       <option value="Active">Active</option>
                       <option value="Upcoming">Upcoming</option>
@@ -245,7 +311,7 @@ export default function AdminBookings() {
                     type="date" 
                     value={editingBooking.date}
                     onChange={(e) => setEditingBooking({...editingBooking, date: e.target.value})}
-                    className="w-full pl-9 pr-3 py-2.5 bg-gray-50 dark:bg-background-dark border border-gray-200 dark:border-border-dark rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-orange-500 appearance-none"
+                    className="w-full pl-9 pr-3 py-2.5 bg-gray-50 dark:bg-background-dark border border-gray-200 dark:border-border-dark rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary appearance-none"
                   />
                 </div>
               </div>
@@ -260,7 +326,7 @@ export default function AdminBookings() {
                       type="time" 
                       value={editingBooking.startTime}
                       onChange={(e) => setEditingBooking({...editingBooking, startTime: e.target.value})}
-                      className="w-full pl-9 pr-3 py-2.5 bg-gray-50 dark:bg-background-dark border border-gray-200 dark:border-border-dark rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-orange-500"
+                      className="w-full pl-9 pr-3 py-2.5 bg-gray-50 dark:bg-background-dark border border-gray-200 dark:border-border-dark rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary"
                     />
                   </div>
                 </div>
@@ -272,7 +338,7 @@ export default function AdminBookings() {
                       type="time" 
                       value={editingBooking.endTime}
                       onChange={(e) => setEditingBooking({...editingBooking, endTime: e.target.value})}
-                      className="w-full pl-9 pr-3 py-2.5 bg-gray-50 dark:bg-background-dark border border-gray-200 dark:border-border-dark rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-orange-500"
+                      className="w-full pl-9 pr-3 py-2.5 bg-gray-50 dark:bg-background-dark border border-gray-200 dark:border-border-dark rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary"
                     />
                   </div>
                 </div>
@@ -292,7 +358,7 @@ export default function AdminBookings() {
               </button>
               <button 
                 onClick={handleSaveChanges}
-                className="px-5 py-2.5 text-sm font-semibold bg-[#ea580c] hover:bg-[#c2410c] text-white rounded-lg transition-colors shadow-sm"
+                className="px-5 py-2.5 text-sm font-semibold bg-primary hover:bg-primary-hover text-white rounded-lg transition-colors shadow-sm"
               >
                 Save Changes
               </button>

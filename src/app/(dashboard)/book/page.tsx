@@ -1,272 +1,220 @@
 'use client';
 
 import { useState, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { Calendar as CalendarIcon, Clock, MapPin, Info, Check, Loader2 } from 'lucide-react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { Calendar as CalendarIcon, Clock, MapPin, Info, Check, Loader2, AlertCircle } from 'lucide-react';
+import axios from 'axios';
 
 function BookContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   
-  // 🔴 ดึงข้อมูลทั้งหมดจาก URL ถ้าไม่มีให้ใช้ค่าเริ่มต้น
-  const spaceName = searchParams.get('name') || 'Downtown Executive Suite';
-  const spaceImage = searchParams.get('image') || 'https://picsum.photos/seed/downtown/1200/400';
-  const spacePrice = searchParams.get('price') || '$25.00';
+  // 🔴 ดึงข้อมูลจาก URL และป้องกันค่า "undefined" จาก Backend
+  const spaceId = searchParams.get('id');
+  const spaceName = searchParams.get('name') || 'Select a Workspace';
   
-  // แปลง type จาก URL ให้ตรงกับ id ของ tab อัตโนมัติ
-  const rawType = searchParams.get('type');
-  let defaultTab = 'hot-desk';
-  if (rawType === 'Dedicated Desk') defaultTab = 'dedicated';
-  if (rawType === 'Private Office') defaultTab = 'office';
-  if (rawType === 'Meeting Room') defaultTab = 'meeting';
+  const imgParam = searchParams.get('image');
+  const spaceImage = imgParam && imgParam !== 'undefined' 
+    ? imgParam 
+    : 'https://picsum.photos/seed/downtown/1200/400';
 
-  const [selectedTab, setSelectedTab] = useState(defaultTab);
+  const priceParam = searchParams.get('price');
+  const spacePrice = priceParam && priceParam !== 'undefined' ? priceParam : '0';
+
   const [selectedDesk, setSelectedDesk] = useState<string | null>(null);
   
-  const [date, setDate] = useState('2023-09-15');
-  const [startTime, setStartTime] = useState('09:00 AM');
-  const [endTime, setEndTime] = useState('05:00 PM');
+  // ✅ จัดการวันที่ และ เวลา (เพิ่มช่องเวลากลับมาแล้ว)
+  const today = new Date().toISOString().split('T')[0];
+  const [date, setDate] = useState(today);
+  const [startTime, setStartTime] = useState('09:00');
+  const [endTime, setEndTime] = useState('18:00');
+  
   const [isBooking, setIsBooking] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [error, setError] = useState(''); 
 
-  const tabs = [
-    { id: 'hot-desk', label: 'Hot Desk' },
-    { id: 'dedicated', label: 'Dedicated Desk' },
-    { id: 'office', label: 'Private Office' },
-    { id: 'meeting', label: 'Meeting Room' },
-  ];
-
-  const desks = Array.from({ length: 24 }, (_, i) => ({
-    id: `desk-${i + 1}`,
-    status: i % 5 === 0 ? 'occupied' : 'available',
-    label: `D${i + 1}`
-  }));
-
-  const handleBooking = () => {
+  const handleBooking = async () => {
+    if (!spaceId) {
+      setError('ไม่พบข้อมูลสถานที่ กรุณากลับไปเลือกสถานที่จากหน้า Spaces ใหม่');
+      return;
+    }
+    
     setIsBooking(true);
-    setTimeout(() => {
-      setIsBooking(false);
-      setIsSuccess(true);
-    }, 1500);
-  };
+    setError('');
 
-  const resetBooking = () => {
-    setIsSuccess(false);
-    setSelectedDesk(null);
+    try {
+      const token = localStorage.getItem('token');
+      
+      // ✅ ยิง API สร้างการจอง (Reservation) ส่งแค่วันที่ไป หรือจะส่งเวลาไปด้วยก็ได้ถ้า Backend รองรับ
+      const res = await axios.post(`http://localhost:5000/api/v1/coworkings/${spaceId}/reservations`, {
+        date: date
+      }, {
+        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true
+      });
+
+      setIsSuccess(true);
+      
+      setTimeout(() => {
+        router.push('/dashboard'); 
+      }, 2000);
+
+    } catch (err: any) {
+      console.error('Booking error:', err);
+      setError(err.response?.data?.message || err.response?.data?.msg || 'เกิดข้อผิดพลาดในการจอง');
+    } finally {
+      setIsBooking(false);
+    }
   };
 
   return (
-    <div className="max-w-6xl mx-auto">
-      {/* Hero Header - 🔴 แสดงรูปและชื่อของสถานที่ที่กดมา */}
-      <div className="relative h-48 md:h-64 rounded-3xl overflow-hidden mb-8">
+    <div className="space-y-6">
+      <div className="relative h-48 md:h-64 rounded-2xl overflow-hidden mb-8">
         <img 
           src={spaceImage} 
           alt={spaceName} 
           className="w-full h-full object-cover"
           referrerPolicy="no-referrer"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
-        <div className="absolute bottom-0 left-0 p-6 md:p-8 text-white">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+        <div className="absolute bottom-6 left-6 text-white">
           <div className="flex items-center gap-2 text-sm font-medium mb-2 opacity-90">
             <MapPin className="w-4 h-4" />
-            {spaceName}
+            <span>Bangkok, Thailand</span>
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold">{spaceName}</h1>
+          <h1 className="text-3xl font-bold">{spaceName}</h1>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-8">
-          {/* Space Type Tabs */}
-          <section>
-            <h2 className="text-xl font-bold mb-4">Type Space</h2>
-            <div className="flex overflow-x-auto hide-scrollbar gap-2 p-1 bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-xl">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setSelectedTab(tab.id)}
-                  className={`whitespace-nowrap px-4 py-2.5 rounded-lg text-sm font-medium transition-colors flex-1 ${
-                    selectedTab === tab.id
-                      ? 'bg-primary text-white shadow-sm'
-                      : 'text-text-muted-light dark:text-text-muted-dark hover:bg-gray-100 dark:hover:bg-gray-800'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-          </section>
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 p-4 rounded-xl flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 shrink-0" />
+          <p className="text-sm">{error}</p>
+        </div>
+      )}
 
-          {/* Floor Plan */}
-          <section>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">Choose Desk Location</h2>
-              <div className="flex items-center gap-4 text-sm">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-gray-200 dark:bg-gray-700"></div>
-                  <span className="text-text-muted-light dark:text-text-muted-dark">Available</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800"></div>
-                  <span className="text-text-muted-light dark:text-text-muted-dark">Occupied</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-primary"></div>
-                  <span className="text-text-muted-light dark:text-text-muted-dark">Selected</span>
-                </div>
-              </div>
+      <div className="grid lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-8">
+          {/* Floor Plan Section */}
+          <div className="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-xl p-6 shadow-sm">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold">Select a Desk</h2>
             </div>
             
-            <div className="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-2xl p-6 overflow-x-auto">
-              <div className="min-w-[500px]">
-                <div className="grid grid-cols-8 gap-4">
-                  {desks.map((desk) => {
-                    const isSelected = selectedDesk === desk.id;
-                    const isOccupied = desk.status === 'occupied';
-                    
-                    return (
-                      <button
-                        key={desk.id}
-                        disabled={isOccupied || isSuccess}
-                        onClick={() => setSelectedDesk(desk.id)}
-                        className={`
-                          aspect-square rounded-xl flex items-center justify-center text-sm font-medium transition-all
-                          ${isOccupied 
-                            ? 'bg-red-50 dark:bg-red-900/10 text-red-400 dark:text-red-500 border border-red-100 dark:border-red-900/30 cursor-not-allowed' 
-                            : isSelected
-                              ? 'bg-primary text-white shadow-md scale-105'
-                              : 'bg-gray-50 dark:bg-gray-800/50 text-text-muted-light dark:text-text-muted-dark border border-border-light dark:border-border-dark hover:border-primary/50 hover:bg-primary/5'
-                          }
-                        `}
-                      >
-                        {desk.label}
-                      </button>
-                    );
-                  })}
-                </div>
-                
-                <div className="mt-8 flex justify-between items-center px-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-xl text-sm text-text-muted-light dark:text-text-muted-dark font-medium">
-                  <span>Entrance</span>
-                  <span>Lounge Area</span>
-                  <span>Kitchen</span>
-                </div>
+            <div className="aspect-[16/9] bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700 p-4 relative overflow-hidden">
+              <div className="absolute top-4 left-4 flex gap-4 text-xs text-text-muted-light dark:text-text-muted-dark">
+                <div className="flex items-center gap-1"><div className="w-3 h-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded"></div> Available</div>
+                <div className="flex items-center gap-1"><div className="w-3 h-3 bg-primary rounded"></div> Selected</div>
+                <div className="flex items-center gap-1"><div className="w-3 h-3 bg-gray-300 dark:bg-gray-800 rounded"></div> Occupied</div>
+              </div>
+
+              <div className="mt-8 grid grid-cols-4 gap-4 max-w-lg mx-auto h-full">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((desk) => {
+                  const isOccupied = [2, 5, 8].includes(desk);
+                  const isSelected = selectedDesk === `Desk ${desk}`;
+                  
+                  return (
+                    <button
+                      key={desk}
+                      disabled={isOccupied}
+                      onClick={() => setSelectedDesk(`Desk ${desk}`)}
+                      className={`h-16 rounded-xl border transition-all flex items-center justify-center font-medium ${
+                        isOccupied 
+                          ? 'bg-gray-200 dark:bg-gray-800 border-transparent text-gray-400 dark:text-gray-600 cursor-not-allowed' 
+                          : isSelected
+                            ? 'bg-primary border-primary text-white shadow-lg shadow-primary/20 scale-105'
+                            : 'bg-white dark:bg-surface-dark border-gray-200 dark:border-gray-700 hover:border-primary/50 hover:bg-primary/5'
+                      }`}
+                    >
+                      D{desk}
+                    </button>
+                  );
+                })}
               </div>
             </div>
-          </section>
+          </div>
         </div>
 
-        {/* Right Column - Booking Details */}
-        <div className="lg:col-span-1">
-          <div className="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-2xl p-6 sticky top-24">
+        {/* Booking Summary Section */}
+        <div className="space-y-6">
+          <div className="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-xl p-6 shadow-sm sticky top-24">
+            <h2 className="text-xl font-bold mb-6">Booking Details</h2>
             
             {isSuccess ? (
-              <div className="text-center py-8">
+              <div className="py-8 text-center">
                 <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Check className="w-8 h-8" />
                 </div>
-                <h3 className="text-2xl font-bold mb-2">Booking Confirmed!</h3>
-                <p className="text-text-muted-light dark:text-text-muted-dark mb-6">
-                  Desk {selectedDesk?.split('-')[1]} is reserved for you on {date}.
-                </p>
-                
-                <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl text-left mb-6 text-sm space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-text-muted-light dark:text-text-muted-dark">Location:</span>
-                    <span className="font-medium text-right">{spaceName}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-text-muted-light dark:text-text-muted-dark">Time:</span>
-                    <span className="font-medium">{startTime} - {endTime}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-text-muted-light dark:text-text-muted-dark">Amount Paid:</span>
-                    <span className="font-medium text-primary">{spacePrice}</span>
-                  </div>
-                </div>
-
+                <h3 className="text-xl font-bold mb-2">Booking Confirmed!</h3>
+                <p className="text-text-muted-light dark:text-text-muted-dark text-sm mb-6">Your workspace is ready for you.</p>
                 <button 
-                  onClick={resetBooking}
-                  className="w-full py-3 rounded-xl font-medium border border-border-light dark:border-border-dark hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  onClick={() => router.push('/dashboard')}
+                  className="bg-primary hover:bg-primary-hover text-white px-6 py-2 rounded-lg font-medium transition-colors"
                 >
-                  Book Another Space
+                  View My Bookings
                 </button>
               </div>
             ) : (
               <>
-                <h2 className="text-xl font-bold mb-6">Booking Details</h2>
-                
-                <div className="space-y-5">
+                <div className="space-y-4 mb-6">
                   <div>
-                    <label className="block text-sm font-medium mb-2">Date</label>
+                    <label className="block text-sm font-medium mb-1">Date</label>
                     <div className="relative">
                       <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted-light dark:text-text-muted-dark" />
                       <input 
                         type="date" 
                         value={date}
+                        min={today}
                         onChange={(e) => setDate(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-text-light dark:text-text-dark"
+                        className="w-full pl-10 pr-4 py-2 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                       />
                     </div>
                   </div>
-
+                  
+                  {/* ✅ ส่วนเลือกเวลา กลับมาแล้ว! */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium mb-2">Start Time</label>
+                      <label className="block text-sm font-medium mb-1">Start Time</label>
                       <div className="relative">
                         <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted-light dark:text-text-muted-dark" />
-                        <select 
+                        <input 
+                          type="time" 
                           value={startTime}
                           onChange={(e) => setStartTime(e.target.value)}
-                          className="w-full pl-9 pr-4 py-2.5 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 appearance-none text-text-light dark:text-text-dark"
-                        >
-                          <option>09:00 AM</option>
-                          <option>10:00 AM</option>
-                          <option>11:00 AM</option>
-                        </select>
+                          className="w-full pl-9 pr-2 py-2 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        />
                       </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-2">End Time</label>
+                      <label className="block text-sm font-medium mb-1">End Time</label>
                       <div className="relative">
                         <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted-light dark:text-text-muted-dark" />
-                        <select 
+                        <input 
+                          type="time" 
                           value={endTime}
                           onChange={(e) => setEndTime(e.target.value)}
-                          className="w-full pl-9 pr-4 py-2.5 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 appearance-none text-text-light dark:text-text-dark"
-                        >
-                          <option>05:00 PM</option>
-                          <option>06:00 PM</option>
-                          <option>07:00 PM</option>
-                        </select>
+                          className="w-full pl-9 pr-2 py-2 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        />
                       </div>
                     </div>
                   </div>
+                </div>
 
-                  <div className="pt-4 border-t border-border-light dark:border-border-dark">
-                    <h3 className="font-medium mb-3">Summary</h3>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-text-muted-light dark:text-text-muted-dark">Location</span>
-                        {/* 🔴 แสดงชื่อสถานที่ตามที่กดมา */}
-                        <span className="font-medium">{spaceName}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-text-muted-light dark:text-text-muted-dark">Space Type</span>
-                        <span className="font-medium">{tabs.find(t => t.id === selectedTab)?.label}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-text-muted-light dark:text-text-muted-dark">Desk Selection</span>
-                        <span className="font-medium">{selectedDesk ? `Desk ${selectedDesk.split('-')[1]}` : 'Not selected'}</span>
-                      </div>
-                    </div>
+                <div className="border-t border-border-light dark:border-border-dark pt-6">
+                  <div className="flex justify-between mb-2">
+                    <span className="text-text-muted-light dark:text-text-muted-dark">Desk Selection</span>
+                    <span className="font-medium">{selectedDesk || 'None'}</span>
+                  </div>
+                  <div className="flex justify-between mb-4">
+                    <span className="text-text-muted-light dark:text-text-muted-dark">Price per day</span>
+                    <span className="font-medium">${spacePrice}</span>
+                  </div>
+                  <div className="flex justify-between text-lg font-bold">
+                    <span>Total</span>
+                    <span>${selectedDesk ? spacePrice : '0.00'}</span>
                   </div>
 
-                  <div className="pt-4 border-t border-border-light dark:border-border-dark">
-                    <div className="flex justify-between items-center mb-6">
-                      <span className="font-bold text-lg">Total</span>
-                      {/* 🔴 แสดงราคาตามสถานที่ที่กดมา */}
-                      <span className="font-bold text-2xl text-primary">{spacePrice}</span>
-                    </div>
-                    
+                  <div className="mt-8">
                     <button 
                       onClick={handleBooking}
                       disabled={!selectedDesk || isBooking}
@@ -291,7 +239,6 @@ function BookContent() {
                 </div>
               </>
             )}
-
           </div>
         </div>
       </div>
@@ -299,7 +246,6 @@ function BookContent() {
   );
 }
 
-// สร้าง Wrapper ครอบด้วย Suspense 
 export default function BookPage() {
   return (
     <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading Booking Details...</div>}>
