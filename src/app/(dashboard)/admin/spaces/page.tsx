@@ -20,6 +20,9 @@ export default function AdminSpaces() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // 🌟 เพิ่ม API_URL เพื่อให้รองรับการ Deploy บน Vercel
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://backend-august-pen-gay.onrender.com/api/v1';
+
   // ดึงข้อมูลเมื่อเปิดหน้า
   useEffect(() => {
     fetchSpaces();
@@ -27,7 +30,8 @@ export default function AdminSpaces() {
 
   const fetchSpaces = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/v1/coworkings');
+      // 🌟 เปลี่ยน localhost เป็น API_URL
+      const res = await axios.get(`${API_URL}/coworkings`);
       setSpaces(res.data.data);
     } catch (err) {
       console.error('Error fetching spaces:', err);
@@ -43,7 +47,8 @@ export default function AdminSpaces() {
     
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:5000/api/v1/coworkings/${id}`, {
+      // 🌟 เปลี่ยน localhost เป็น API_URL
+      await axios.delete(`${API_URL}/coworkings/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
         withCredentials: true
       });

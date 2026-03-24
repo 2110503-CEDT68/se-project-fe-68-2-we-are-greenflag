@@ -19,8 +19,10 @@ export default function SpacesPage() {
   const [spaces, setSpaces] = useState<Coworking[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // 🌟 เพิ่ม State สำหรับเก็บค่าตัวเลือกการ Sort
   const [sortBy, setSortBy] = useState<string>('default');
+
+  // 🌟 1. ดึง URL ของ Backend จาก Environment Variable
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://backend-august-pen-gay.onrender.com/api/v1';
 
   const fallbackImages = [
     'https://images.unsplash.com/photo-1527192491265-7e15c55b1ed2?auto=format&fit=crop&w=800&q=80',
@@ -38,7 +40,8 @@ export default function SpacesPage() {
   useEffect(() => {
     const fetchSpaces = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/v1/coworkings');
+        // 🌟 2. เปลี่ยน localhost เป็น API_URL
+        const res = await axios.get(`${API_URL}/coworkings`);
         setSpaces(res.data.data);
       } catch (err) {
         console.error('Error fetching spaces:', err);
@@ -49,15 +52,13 @@ export default function SpacesPage() {
     fetchSpaces();
   }, []);
 
-  // 🌟 ฟังก์ชันสำหรับจัดการการ Sort ข้อมูลก่อนนำไปแสดงผล
   const sortedSpaces = [...spaces].sort((a, b) => {
     if (sortBy === 'price_asc') {
-      return a.price_per_hour - b.price_per_hour; // ราคาน้อยไปมาก
+      return a.price_per_hour - b.price_per_hour;
     } else if (sortBy === 'rating_desc') {
-      // เรตติ้งมากไปน้อย (ถ้าไม่มี rating ให้ถือว่าเป็น 0 เพื่อกัน error)
       return (b.rating || 0) - (a.rating || 0);
     }
-    return 0; // default (ตามที่ดึงมาจาก API)
+    return 0;
   });
 
   if (loading) {
@@ -71,7 +72,6 @@ export default function SpacesPage() {
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       
-      {/* 🌟 ปรับ Header ให้มี Dropdown สำหรับ Sort */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Available Spaces</h1>
         
@@ -93,7 +93,6 @@ export default function SpacesPage() {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {/* 🌟 เปลี่ยนจาก spaces.map เป็น sortedSpaces.map */}
         {sortedSpaces.map((space, index) => {
           const defaultImage = space.picture || fallbackImages[index % fallbackImages.length];
 

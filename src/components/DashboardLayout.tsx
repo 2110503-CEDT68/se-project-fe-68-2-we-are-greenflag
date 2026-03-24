@@ -11,6 +11,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const location = usePathname();
   const isAdmin = location?.includes('/admin');
 
+  // 🌟 1. สร้างตัวแปร URL โดยดึงจาก Environment 
+  // (แก้ลิงก์ข้างล่างนี้ให้ตรงกับ URL Render ของคุณด้วยนะครับ)
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://backend-august-pen-gay.onrender.com/api/v1';
+
   const navItems = isAdmin ? [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/admin' },
     { icon: Building, label: 'Spaces', path: '/admin/spaces' },
@@ -32,19 +36,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const handleLogout = async () => {
     try {
-      // 1. เรียก API เพื่อเคลียร์ Cookie ฝั่ง Backend
-      await axios.get('http://localhost:5000/api/v1/auth/logout', {
+      // 🌟 2. เปลี่ยน localhost เป็น API_URL
+      await axios.get(`${API_URL}/auth/logout`, {
         withCredentials: true
       });
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      // 2. ไม่ว่าจะสำเร็จหรือพัง ก็ลบ Token ในเครื่องทิ้ง
       if (typeof window !== 'undefined') {
         localStorage.removeItem('token');
         localStorage.removeItem('userRole');
       }
-      // 3. เด้งกลับไปหน้า Login
       router.push('/login');
     }
   };
@@ -91,7 +93,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           </div>
           
-          {/* ✅ เปลี่ยนจาก <Link> เป็น <button> และเรียกใช้ handleLogout ที่นี่ */}
           <button 
             onClick={handleLogout} 
             className="w-full text-left mt-2 flex items-center gap-3 px-3 py-2 text-text-muted-light dark:text-text-muted-dark hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-red-500 rounded-lg transition-colors"
@@ -127,7 +128,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 Book a Desk
               </Link>
             )}
-            {/* Mobile menu button could go here */}
           </div>
         </header>
 

@@ -27,10 +27,14 @@ export default function Dashboard() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
 
+  // 🌟 เพิ่ม API_URL แบบเดียวกับหน้าอื่นๆ
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://backend-august-pen-gay.onrender.com/api/v1';
+
   const fetchBookings = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://localhost:5000/api/v1/reservations', {
+      // 🌟 เปลี่ยน localhost เป็น API_URL
+      const res = await axios.get(`${API_URL}/reservations`, {
         headers: { Authorization: `Bearer ${token}` },
         withCredentials: true
       });
@@ -71,8 +75,8 @@ export default function Dashboard() {
       try {
         const token = localStorage.getItem('token');
         
-        // 🟢 3. ส่งข้อมูลไปอัปเดต ต้องส่งทั้ง date, startTime, endTime เข้าไป
-        await axios.put(`http://localhost:5000/api/v1/reservations/${editingBooking.id}`, 
+        // 🌟 เปลี่ยน localhost เป็น API_URL ใน PUT Request
+        await axios.put(`${API_URL}/reservations/${editingBooking.id}`, 
           { 
             date: editingBooking.date,
             startTime: editingBooking.startTime,
@@ -99,7 +103,8 @@ export default function Dashboard() {
     if (!confirm('คุณแน่ใจใช่ไหมที่จะยกเลิกการจองนี้?')) return;
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:5000/api/v1/reservations/${id}`, {
+      // 🌟 เปลี่ยน localhost เป็น API_URL ใน DELETE Request
+      await axios.delete(`${API_URL}/reservations/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
         withCredentials: true
       });
@@ -242,7 +247,6 @@ export default function Dashboard() {
             </div>
           </section>
 
-          {/* ... (ส่วนอื่นๆ ของ Dashboard เหมือนเดิม) ... */}
           <section>
             <h2 className="text-xl font-bold mb-4">Current Hub Location</h2>
             <div className="bg-surface-light dark:bg-surface-dark rounded-2xl border border-border-light dark:border-border-dark overflow-hidden">

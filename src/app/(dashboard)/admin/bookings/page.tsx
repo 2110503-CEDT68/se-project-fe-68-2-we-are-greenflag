@@ -28,11 +28,14 @@ export default function AdminBookings() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
 
+  // 🌟 เพิ่ม API_URL เพื่อให้รองรับการ Deploy บน Vercel
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://backend-august-pen-gay.onrender.com/api/v1';
+
   const fetchBookings = async () => {
     try {
       const token = localStorage.getItem('token');
-      // Backend ควรตั้งค่าให้ API นี้คืนค่าทั้งหมดเมื่อเป็น Admin
-      const res = await axios.get('http://localhost:5000/api/v1/reservations', {
+      // 🌟 เปลี่ยน localhost เป็น API_URL
+      const res = await axios.get(`${API_URL}/reservations`, {
         headers: { Authorization: `Bearer ${token}` },
         withCredentials: true
       });
@@ -42,7 +45,7 @@ export default function AdminBookings() {
         return {
           id: r._id,
           user: r.user?.name || 'Unknown User',
-          userId: r.user?._id || '', // 🟢 ดึง userId มาจาก Backend
+          userId: r.user?._id || '', 
           type: r.coworking?.type ? r.coworking.type.charAt(0).toUpperCase() + r.coworking.type.slice(1) : 'Workspace',
           location: r.coworking?.name || 'Unknown Location',
           date: dateStr,
@@ -76,7 +79,8 @@ export default function AdminBookings() {
     if (!confirm('คุณแน่ใจใช่ไหมที่จะลบการจองนี้? (การลบในฐานะ Admin)')) return;
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:5000/api/v1/reservations/${id}`, {
+      // 🌟 เปลี่ยน localhost เป็น API_URL
+      await axios.delete(`${API_URL}/reservations/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
         withCredentials: true
       });
@@ -97,7 +101,8 @@ export default function AdminBookings() {
     if (editingBooking) {
       try {
         const token = localStorage.getItem('token');
-        await axios.put(`http://localhost:5000/api/v1/reservations/${editingBooking.id}`, 
+        // 🌟 เปลี่ยน localhost เป็น API_URL
+        await axios.put(`${API_URL}/reservations/${editingBooking.id}`, 
           { 
             date: editingBooking.date,
             startTime: editingBooking.startTime,
@@ -167,7 +172,6 @@ export default function AdminBookings() {
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <div className="relative flex-1 sm:w-80">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted-light dark:text-text-muted-dark" />
-            {/* 🟢 ผูก State การค้นหากับ Input Field */}
             <input 
               type="text" 
               placeholder="Search by User ID, Name, Booking ID..." 
@@ -230,7 +234,6 @@ export default function AdminBookings() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border-light dark:divide-border-dark" ref={menuRef}>
-              {/* 🟢 ใช้ filteredBookings ในการวนลูปแทน bookings ปกติ */}
               {filteredBookings.map((booking, index) => {
                 const isBottomRow = index >= filteredBookings.length - 2 && filteredBookings.length > 3;
                 return (
@@ -245,7 +248,6 @@ export default function AdminBookings() {
                       </div>
                       <div className="flex flex-col">
                         <span className="text-sm font-medium">{booking.user}</span>
-                        {/* 🟢 แสดง User ID ย่อให้ Admin เห็นได้ด้วย */}
                         <span className="text-[10px] text-gray-400">uid: {booking.userId.slice(-6)}</span>
                       </div>
                     </div>
@@ -297,7 +299,6 @@ export default function AdminBookings() {
                 </tr>
               )})}
               
-              {/* 🟢 แจ้งเตือนเมื่อค้นหาไม่เจอข้อมูล */}
               {filteredBookings.length === 0 && (
                 <tr>
                   <td colSpan={7} className="p-8 text-center text-text-muted-light dark:text-text-muted-dark">
@@ -312,7 +313,6 @@ export default function AdminBookings() {
 
       {isEditModalOpen && editingBooking && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          {/* ... Modal Code (เหมือนเดิม) ... */}
           <div className="bg-white dark:bg-surface-dark rounded-xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="flex justify-between items-center p-6 pb-4">
               <h2 className="text-xl font-bold">Edit Booking (Admin)</h2>

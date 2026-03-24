@@ -31,6 +31,9 @@ function BookContent() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState(''); 
 
+  // 🌟 เพิ่ม API_URL เพื่อให้รองรับการ Deploy บน Vercel
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://backend-august-pen-gay.onrender.com/api/v1';
+
   const handleBooking = async () => {
     if (!spaceId) {
       setError('ไม่พบข้อมูลสถานที่ กรุณากลับไปเลือกสถานที่จากหน้า Spaces ใหม่');
@@ -43,8 +46,8 @@ function BookContent() {
     try {
       const token = localStorage.getItem('token');
       
-      // 🟢 อัปเดตข้อมูลที่ส่งไปให้ Backend ใส่เวลาและโต๊ะเข้าไปด้วย
-      const res = await axios.post(`http://localhost:5000/api/v1/coworkings/${spaceId}/reservations`, {
+      // 🌟 เปลี่ยน localhost:5000 เป็น API_URL
+      const res = await axios.post(`${API_URL}/coworkings/${spaceId}/reservations`, {
         date: date,
         startTime: startTime,
         endTime: endTime,

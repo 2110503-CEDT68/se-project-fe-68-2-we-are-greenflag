@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react'; // 🟢 1. อย่าลืม import useEffect
+import React, { useState, useEffect } from 'react'; 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
@@ -12,14 +12,16 @@ export default function Login() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // 🟢 2. เพิ่ม useEffect เพื่อ "ล้างไพ่" ทุกครั้งที่เปิดหน้า Login
+  // 🌟 1. สร้างตัวแปร URL โดยดึงจาก Environment (ถ้าไม่มีให้ใช้ลิงก์ Render แทน)
+  // อย่าลืมเปลี่ยนลิงก์ข้างล่างนี้เป็นลิงก์ Render จริงๆ ของคุณนะครับ!
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://backend-august-pen-gay.onrender.com/api/v1';
+
   useEffect(() => {
-    // ลบข้อมูลใน LocalStorage ทิ้งให้หมด
     localStorage.removeItem('token');
     localStorage.removeItem('userRole');
     
-    // ยิง API ไปบอก Backend ว่าขอลบ Cookie อันเก่าทิ้งด้วย (ดัก Error ไว้เผื่อยังไม่ได้ล็อกอิน)
-    axios.get('http://localhost:5000/api/v1/auth/logout', { withCredentials: true })
+    // 🌟 2. เปลี่ยน localhost เป็น API_URL
+    axios.get(`${API_URL}/auth/logout`, { withCredentials: true })
       .catch(() => {});
   }, []);
 
@@ -33,7 +35,8 @@ export default function Login() {
     const password = formData.get('password')?.toString() || '';
 
     try {
-      const loginRes = await axios.post('http://localhost:5000/api/v1/auth/login', {
+      // 🌟 3. เปลี่ยน localhost เป็น API_URL
+      const loginRes = await axios.post(`${API_URL}/auth/login`, {
         email,
         password
       }, {
@@ -45,7 +48,8 @@ export default function Login() {
         localStorage.setItem('token', token);
       }
 
-      const meRes = await axios.get('http://localhost:5000/api/v1/auth/me', {
+      // 🌟 4. เปลี่ยน localhost เป็น API_URL
+      const meRes = await axios.get(`${API_URL}/auth/me`, {
         headers: {
           Authorization: `Bearer ${token}` 
         },
@@ -58,9 +62,7 @@ export default function Login() {
         localStorage.setItem('userRole', userRole);
       }
       
-      // 🟢 3. แก้ไขการเปลี่ยนหน้าตรงนี้ เพื่อป้องกัน Cache ของ Next.js
       if (userRole === 'admin') {
-        // ใช้ window.location.href เพื่อให้หน้าเว็บโหลดใหม่ทั้งหมด (ล้าง State เก่า)
         window.location.href = '/admin'; 
       } else {
         window.location.href = '/dashboard';

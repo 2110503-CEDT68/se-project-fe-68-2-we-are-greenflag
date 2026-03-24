@@ -3,16 +3,18 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import axios from 'axios'; // ✅ เพิ่ม axios
+import axios from 'axios'; 
 
 import { User, Mail, Lock, ArrowRight, Phone } from 'lucide-react';
 
 export default function SignUp() {
   const navigate = useRouter();
 
-  // ✅ เพิ่ม State สำหรับจัดการ Error และ Loading
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // 🌟 1. สร้างตัวแปร URL ดึงจาก Environment หรือ Render URL ของเรา
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://backend-august-pen-gay.onrender.com/api/v1';
 
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -25,7 +27,6 @@ export default function SignUp() {
     const email = formData.get('email')?.toString() || '';
     const password = formData.get('password')?.toString() || '';
 
-    // ✅ เพิ่ม Validation เช็คความถูกต้องเบื้องต้นก่อนส่งไป Backend
     if (!/^[0-9]{9,10}$/.test(telephone)) {
       setError('เบอร์โทรศัพท์ต้องเป็นตัวเลข 9-10 หลักเท่านั้น');
       setIsLoading(false);
@@ -38,30 +39,27 @@ export default function SignUp() {
     }
 
     try {
-      // 1. ยิง API สมัครสมาชิก
-      const res = await axios.post('http://localhost:5000/api/v1/auth/register', {
+      // 🌟 2. เปลี่ยน localhost เป็น API_URL
+      const res = await axios.post(`${API_URL}/auth/register`, {
         name,
         email,
         password,
         telephone,
-        role: 'user' // บังคับให้สมัครมาเป็น user ธรรมดาก่อนเสมอ
+        role: 'user' 
       }, {
         withCredentials: true
       });
 
-      // 2. ถ้าสำเร็จ เก็บ Token และ Role ลง LocalStorage
       const token = res.data.token;
       if (typeof window !== 'undefined') {
         localStorage.setItem('token', token);
         localStorage.setItem('userRole', 'user');
       }
 
-      // 3. เปลี่ยนหน้าไปที่ Dashboard
       navigate.push('/dashboard');
 
     } catch (err: any) {
       console.error('Signup error:', err);
-      // ดึงข้อความ Error จาก Backend มาแสดง
       setError(err.response?.data?.message || err.response?.data?.msg || 'ไม่สามารถสมัครสมาชิกได้ อีเมลนี้อาจมีผู้ใช้งานแล้ว');
     } finally {
       setIsLoading(false);
@@ -97,7 +95,6 @@ export default function SignUp() {
             </p>
           </div>
           
-          {/* ✅ กล่องแสดงข้อความ Error (ถ้ามี) */}
           {error && (
             <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-xl text-sm text-center">
               {error}
@@ -196,7 +193,7 @@ export default function SignUp() {
             </div>
           </form>
 
-          {/* ... (ส่วนโค้ดปุ่ม Google/Github ด้านล่างยังคงเหมือนเดิม) ... */}
+          {/* ... (ส่วนปุ่มอื่นๆ) ... */}
 
           <p className="mt-8 text-center text-sm text-text-muted-light dark:text-text-muted-dark">
             Already have an account?{' '}
