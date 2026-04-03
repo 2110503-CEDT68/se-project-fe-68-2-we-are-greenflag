@@ -1,11 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Building, Plus, Trash2, Edit } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Building, Plus, Trash2, Edit, X, Clock, Loader2 } from 'lucide-react';
 import axios from 'axios';
-import Link from 'next/link';
 
-// สร้าง Type ให้ตรงกับโมเดล Coworking ในฐานข้อมูล
 interface Coworking {
   _id: string;
   name: string;
@@ -19,18 +17,22 @@ export default function AdminSpaces() {
   const [spaces, setSpaces] = useState<Coworking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [createError, setCreateError] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
-  // 🌟 เพิ่ม API_URL เพื่อให้รองรับการ Deploy บน Vercel
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://backend-august-pen-gay.onrender.com/api/v1';
 
-  // ดึงข้อมูลเมื่อเปิดหน้า
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsAdmin(localStorage.getItem('userRole') === 'admin');
+    }
     fetchSpaces();
   }, []);
 
   const fetchSpaces = async () => {
     try {
-      // 🌟 เปลี่ยน localhost เป็น API_URL
       const res = await axios.get(`${API_URL}/coworkings`);
       setSpaces(res.data.data);
     } catch (err) {
@@ -41,22 +43,99 @@ export default function AdminSpaces() {
     }
   };
 
-  // ✅ ฟังก์ชันสำหรับ Admin ลบสถานที่ (เรียก API DELETE /api/v1/coworkings/:id)
+  const closeAddModal = useCallback(() => {
+    setAddModalOpen(false);
+    setCreateError('');
+    setCreating(false);
+  }, []);
+
+  useEffect(() => {
+    if (!addModalOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeAddModal();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [addModalOpen, closeAddModal]);
+
   const handleDelete = async (id: string) => {
     if (!window.confirm('คุณแน่ใจหรือไม่ว่าต้องการลบสถานที่นี้? ข้อมูลการจองที่เกี่ยวข้องจะถูกลบไปด้วย')) return;
-    
+
     try {
       const token = localStorage.getItem('token');
-      // 🌟 เปลี่ยน localhost เป็น API_URL
       await axios.delete(`${API_URL}/coworkings/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
-        withCredentials: true
+        withCredentials: true,
       });
-      // ลบสำเร็จ ให้ดึงข้อมูลมาแสดงใหม่
       fetchSpaces();
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const ax = err as { response?: { data?: { message?: string } } };
       console.error('Delete error:', err);
-      alert('ไม่สามารถลบได้: ' + (err.response?.data?.message || 'เกิดข้อผิดพลาด'));
+      alert('ไม่สามารถลบได้: ' + (ax.response?.data?.message || 'เกิดข้อผิดพลาด'));
+    }
+  };
+
+  const handleCreateSpace = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setCreateError('');
+
+    const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : null;
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (!token || role !== 'admin') {
+      setCreateError('เฉพาะผู้ดูแลระบบ (admin) เท่านั้นที่สามารถเพิ่มสถานที่ได้');
+      return;
+    }
+
+    const form = e.currentTarget;
+    const fd = new FormData(form);
+    const name = (fd.get('name') as string)?.trim();
+    const address = (fd.get('address') as string)?.trim();
+    const telephone = (fd.get('telephone') as string)?.trim();
+    const priceRaw = fd.get('price_per_hour') as string;
+    const open_time = (fd.get('open_time') as string) || '';
+    const close_time = (fd.get('close_time') as string) || '';
+    const type = (fd.get('type') as string) || 'desk';
+    const status = (fd.get('status') as string) || 'available';
+
+    const price_per_hour = Number(priceRaw);
+    if (!name || !address || !telephone) {
+      setCreateError('กรุณากรอกข้อมูลที่จำเป็นให้ครบ');
+      return;
+    }
+    if (Number.isNaN(price_per_hour) || price_per_hour < 0) {
+      setCreateError('กรุณากรอกราคาต่อชั่วโมงให้ถูกต้อง');
+      return;
+    }
+    if (!open_time || !close_time) {
+      setCreateError('กรุณาเลือกเวลาเปิด–ปิด');
+      return;
+    }
+
+    const payload: Record<string, unknown> = {
+      name,
+      address,
+      telephone,
+      price_per_hour,
+      open_time,
+      close_time,
+      type,
+      status,
+    };
+
+    setCreating(true);
+    try {
+      await axios.post(`${API_URL}/coworkings`, payload, {
+        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
+      });
+      form.reset();
+      closeAddModal();
+      fetchSpaces();
+    } catch (err: unknown) {
+      const ax = err as { response?: { data?: { message?: string; msg?: string } } };
+      setCreateError(ax.response?.data?.message || ax.response?.data?.msg || 'ไม่สามารถเพิ่มสถานที่ได้');
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -75,11 +154,19 @@ export default function AdminSpaces() {
           <h1 className="text-2xl font-bold">Spaces Management</h1>
           <p className="text-text-muted-light dark:text-text-muted-dark">Manage your workspace inventory and availability.</p>
         </div>
-        {/* ปุ่มนี้เดี๋ยวเราค่อยเชื่อมไปหน้าฟอร์มสร้างสถานที่ (Create Coworking) */}
-        <button className="flex items-center gap-2 bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded-lg font-medium transition-colors">
-          <Plus className="w-4 h-4" />
-          Add Space
-        </button>
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={() => {
+              setCreateError('');
+              setAddModalOpen(true);
+            }}
+            className="flex items-center gap-2 bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded-lg font-medium transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Add Space
+          </button>
+        )}
       </div>
 
       {error && (
@@ -109,7 +196,10 @@ export default function AdminSpaces() {
                 </tr>
               ) : (
                 spaces.map((space) => (
-                  <tr key={space._id} className="border-b border-border-light dark:border-border-dark last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                  <tr
+                    key={space._id}
+                    className="border-b border-border-light dark:border-border-dark last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                  >
                     <td className="p-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
@@ -124,11 +214,15 @@ export default function AdminSpaces() {
                     <td className="p-4 text-text-muted-light dark:text-text-muted-dark capitalize">{space.type}</td>
                     <td className="p-4 text-text-muted-light dark:text-text-muted-dark">${space.price_per_hour}</td>
                     <td className="p-4">
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                        space.status === 'available' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                        space.status === 'unavailable' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
-                        'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
-                      }`}>
+                      <span
+                        className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                          space.status === 'available'
+                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                            : space.status === 'unavailable'
+                              ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                              : 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
+                        }`}
+                      >
                         {space.status.charAt(0).toUpperCase() + space.status.slice(1)}
                       </span>
                     </td>
@@ -137,7 +231,7 @@ export default function AdminSpaces() {
                         <button className="p-2 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20 rounded-lg transition-colors text-text-muted-light dark:text-text-muted-dark">
                           <Edit className="w-4 h-4" />
                         </button>
-                        <button 
+                        <button
                           onClick={() => handleDelete(space._id)}
                           className="p-2 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 rounded-lg transition-colors text-text-muted-light dark:text-text-muted-dark"
                         >
@@ -152,6 +246,182 @@ export default function AdminSpaces() {
           </table>
         </div>
       </div>
+
+      {addModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          role="presentation"
+          onClick={closeAddModal}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="add-space-title"
+            className="w-full max-w-xl rounded-2xl bg-zinc-900 text-zinc-100 border border-zinc-700 shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200"
+            onClick={(ev) => ev.stopPropagation()}
+          >
+            <div className="flex justify-between items-center px-6 pt-6 pb-2">
+              <h2 id="add-space-title" className="text-lg font-bold text-white">
+                Add New Space
+              </h2>
+              <button
+                type="button"
+                onClick={closeAddModal}
+                className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateSpace} className="px-6 pb-6 pt-2 space-y-4">
+              {createError && (
+                <div className="text-sm text-red-400 bg-red-950/50 border border-red-800/60 rounded-lg px-3 py-2">{createError}</div>
+              )}
+
+              <div>
+                <label htmlFor="add-name" className="block text-sm font-medium text-zinc-300 mb-1.5">
+                  Name <span className="text-primary">*</span>
+                </label>
+                <input
+                  id="add-name"
+                  name="name"
+                  required
+                  placeholder="e.g. The Hub Bangkok"
+                  className="w-full px-3 py-2.5 rounded-xl bg-zinc-800/80 border border-zinc-600 text-white placeholder:text-zinc-500 text-sm focus:outline-none focus:ring-2 focus:ring-primary/60"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="add-address" className="block text-sm font-medium text-zinc-300 mb-1.5">
+                  Address <span className="text-primary">*</span>
+                </label>
+                <input
+                  id="add-address"
+                  name="address"
+                  required
+                  placeholder="e.g. 123 Sukhumvit Rd, Bangkok"
+                  className="w-full px-3 py-2.5 rounded-xl bg-zinc-800/80 border border-zinc-600 text-white placeholder:text-zinc-500 text-sm focus:outline-none focus:ring-2 focus:ring-primary/60"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="add-phone" className="block text-sm font-medium text-zinc-300 mb-1.5">
+                    Telephone <span className="text-primary">*</span>
+                  </label>
+                  <input
+                    id="add-phone"
+                    name="telephone"
+                    required
+                    placeholder="02-xxx-xxxx"
+                    className="w-full px-3 py-2.5 rounded-xl bg-zinc-800/80 border border-zinc-600 text-white placeholder:text-zinc-500 text-sm focus:outline-none focus:ring-2 focus:ring-primary/60"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="add-price" className="block text-sm font-medium text-zinc-300 mb-1.5">
+                    Price / Hour (฿) <span className="text-primary">*</span>
+                  </label>
+                  <input
+                    id="add-price"
+                    name="price_per_hour"
+                    type="number"
+                    min={0}
+                    step={1}
+                    required
+                    placeholder="150"
+                    className="w-full px-3 py-2.5 rounded-xl bg-zinc-800/80 border border-zinc-600 text-white placeholder:text-zinc-500 text-sm focus:outline-none focus:ring-2 focus:ring-primary/60"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="add-open" className="block text-sm font-medium text-zinc-300 mb-1.5">
+                    Open Time <span className="text-primary">*</span>
+                  </label>
+                  <div className="relative">
+                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none" />
+                    <input
+                      id="add-open"
+                      name="open_time"
+                      type="time"
+                      required
+                      className="w-full pl-10 pr-3 py-2.5 rounded-xl bg-zinc-800/80 border border-zinc-600 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/60 scheme-dark"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="add-close" className="block text-sm font-medium text-zinc-300 mb-1.5">
+                    Close Time <span className="text-primary">*</span>
+                  </label>
+                  <div className="relative">
+                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none" />
+                    <input
+                      id="add-close"
+                      name="close_time"
+                      type="time"
+                      required
+                      className="w-full pl-10 pr-3 py-2.5 rounded-xl bg-zinc-800/80 border border-zinc-600 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/60 scheme-dark"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="add-type" className="block text-sm font-medium text-zinc-300 mb-1.5">
+                    Type <span className="text-primary">*</span>
+                  </label>
+                  <select
+                    id="add-type"
+                    name="type"
+                    defaultValue="desk"
+                    className="w-full px-3 py-2.5 rounded-xl bg-zinc-800/80 border border-zinc-600 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/60 appearance-none cursor-pointer"
+                  >
+                    <option value="desk">Desk</option>
+                    <option value="private_office">Private office</option>
+                    <option value="hot_desk">Hot desk</option>
+                    <option value="meeting_room">Meeting room</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="add-status" className="block text-sm font-medium text-zinc-300 mb-1.5">
+                    Status
+                  </label>
+                  <select
+                    id="add-status"
+                    name="status"
+                    defaultValue="available"
+                    className="w-full px-3 py-2.5 rounded-xl bg-zinc-800/80 border border-zinc-600 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/60 appearance-none cursor-pointer"
+                  >
+                    <option value="available">Available</option>
+                    <option value="unavailable">Unavailable</option>
+                    <option value="maintenance">Maintenance</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex flex-col-reverse sm:flex-row gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={closeAddModal}
+                  className="flex-1 py-3 rounded-xl font-semibold border-2 border-zinc-500 text-white bg-transparent hover:bg-zinc-800 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={creating}
+                  className="flex-1 py-3 rounded-xl font-bold bg-primary hover:bg-primary-hover text-white transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                >
+                  {creating ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Create Space'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
