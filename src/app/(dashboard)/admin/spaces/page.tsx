@@ -116,8 +116,8 @@ export default function AdminSpaces() {
       address,
       telephone,
       price_per_hour,
-      open_time,
-      close_time,
+      openTime: open_time,
+      closeTime: close_time,
       type,
       status,
     };
@@ -212,7 +212,7 @@ export default function AdminSpaces() {
                       </div>
                     </td>
                     <td className="p-4 text-text-muted-light dark:text-text-muted-dark capitalize">{space.type}</td>
-                    <td className="p-4 text-text-muted-light dark:text-text-muted-dark">${space.price_per_hour}</td>
+                    <td className="p-4 text-text-muted-light dark:text-text-muted-dark">฿{space.price_per_hour}</td>
                     <td className="p-4">
                       <span
                         className={`px-2.5 py-1 rounded-full text-xs font-medium ${
@@ -380,9 +380,9 @@ export default function AdminSpaces() {
                     className="w-full px-3 py-2.5 rounded-xl bg-zinc-800/80 border border-zinc-600 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/60 appearance-none cursor-pointer"
                   >
                     <option value="desk">Desk</option>
-                    <option value="private_office">Private office</option>
-                    <option value="hot_desk">Hot desk</option>
-                    <option value="meeting_room">Meeting room</option>
+                    <option value="room">Room</option>
+                    <option value="meeting">Meeting room</option>
+                    <option value="private">Private office</option>
                   </select>
                 </div>
                 <div>
