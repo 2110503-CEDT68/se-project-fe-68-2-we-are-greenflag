@@ -21,6 +21,7 @@ export default function AdminSpaces() {
   const [createError, setCreateError] = useState('');
   const [creating, setCreating] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [showAll, setShowAll] = useState(false);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://backend-august-pen-gay.onrender.com/api/v1';
 
@@ -139,6 +140,8 @@ export default function AdminSpaces() {
     }
   };
 
+  const displayedSpaces = showAll ? spaces : spaces.slice(0, 5);
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -195,7 +198,7 @@ export default function AdminSpaces() {
                   </td>
                 </tr>
               ) : (
-                spaces.map((space) => (
+                displayedSpaces.map((space) => (
                   <tr
                     key={space._id}
                     className="border-b border-border-light dark:border-border-dark last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
@@ -245,6 +248,17 @@ export default function AdminSpaces() {
             </tbody>
           </table>
         </div>
+
+        {spaces.length > 5 && (
+          <div className="p-4 border-t border-border-light dark:border-border-dark flex justify-center bg-background-light dark:bg-background-dark/50">
+            <button
+              onClick={() => setShowAll(!showAll)}
+              className="px-4 py-2 text-sm font-medium text-text-muted-light dark:text-text-muted-dark hover:text-primary dark:hover:text-primary transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/50"
+            >
+              {showAll ? 'Show Less' : `View All (${spaces.length})`}
+            </button>
+          </div>
+        )}        
       </div>
 
       {addModalOpen && (
