@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Building, Plus, Trash2, Edit, X, Clock, Loader2 } from 'lucide-react';
 import axios from 'axios';
+import Alert from '@/src/components/Alert';
 
 // เพิ่มฟิลด์ที่ตกหล่นใน Interface เพื่อให้แก้ไขฟอร์มได้ครบถ้วน
 interface Coworking {
@@ -34,6 +35,12 @@ export default function AdminSpaces() {
   const [editError, setEditError] = useState('');
   const [editing, setEditing] = useState(false);
   const [editingSpace, setEditingSpace] = useState<Coworking | null>(null);
+
+  //สำหรับเรียกใช้ Alert งับ
+  const [alert, setAlert] = useState<{
+  message: string;
+  type: 'success' | 'error' | 'warning';
+} | null>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://backend-august-pen-gay.onrender.com/api/v1';
 
@@ -97,7 +104,10 @@ export default function AdminSpaces() {
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { message?: string } } };
       console.error('Delete error:', err);
-      alert('ไม่สามารถลบได้: ' + (ax.response?.data?.message || 'เกิดข้อผิดพลาด'));
+      setAlert({
+        message: 'ไม่สามารถลบได้: ' + (ax.response?.data?.message || 'เกิดข้อผิดพลาด'),
+        type: 'error'
+      });
     }
   };
 
@@ -203,9 +213,18 @@ export default function AdminSpaces() {
       });
       closeEditModal();
       fetchSpaces(); // รีเฟรชข้อมูลในตารางใหม่
+
+      setAlert({
+        message: 'Updated Successfully 🎉',
+        type: 'success',
+      });
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { message?: string; msg?: string } } };
       setEditError(ax.response?.data?.message || ax.response?.data?.msg || 'ไม่สามารถอัปเดตสถานที่ได้');
+      setAlert({
+        message: 'Failed to update space 🚫',
+        type: 'error',
+      });
     } finally {
       setEditing(false);
     }
@@ -215,6 +234,7 @@ export default function AdminSpaces() {
 
   if (loading) {
     return (
+      
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
@@ -223,6 +243,13 @@ export default function AdminSpaces() {
 
   return (
     <div className="space-y-6">
+      {alert && (
+      <Alert
+        message={alert.message}
+        type={alert.type}
+        onClose={() => setAlert(null)}
+      />
+    )}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold">Spaces Management</h1>
