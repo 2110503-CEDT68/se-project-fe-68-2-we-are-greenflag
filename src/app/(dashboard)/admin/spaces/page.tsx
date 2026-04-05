@@ -125,7 +125,7 @@ export default function AdminSpaces() {
       // เรียกใช้ Alert เมื่อลบสำเร็จ
       setAlert({
         message: 'Deleted successfully 🎉',
-        type: 'success'
+        type: 'error' // เปลี่ยนจาก 'success' เป็น 'error' เพื่อให้แสดงพื้นหลังสีแดง
       });
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { message?: string } } };
