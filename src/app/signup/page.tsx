@@ -80,7 +80,7 @@ export default function SignUp() {
       {showPrivacyModal && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 sm:p-6 backdrop-blur-sm">
           {/* Container หลัก: เพิ่มขอบสีส้มและมุมโค้งมน */}
-          <div className="bg-white border-[12px] md:border-[16px] border-[#f97316] rounded-[32px] shadow-2xl max-w-2xl w-full flex flex-col transform transition-all duration-300 scale-100 max-h-[90vh]">
+          <div className="bg-white border-[2px] md:border-[16px] border-[#f97316] rounded-[32px] shadow-2xl max-w-2xl w-full flex flex-col transform transition-all duration-300 scale-100 max-h-[90vh]">
             
             {/* Modal Header: พื้นหลังสีขาว ตัวอักษรสีดำ ตัวหนา */}
             <div className="bg-white p-6 text-center border-b border-gray-100 rounded-t-[20px]">
