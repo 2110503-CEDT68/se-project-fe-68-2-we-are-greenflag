@@ -12,7 +12,7 @@ export default function SignUp() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
-  const [pendingFormData, setPendingFormData] = useState(null);
+  const [pendingFormData, setPendingFormData] = useState<any>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://backend-august-pen-gay.onrender.com/api/v1';
 
@@ -78,16 +78,17 @@ export default function SignUp() {
       
       {/* --- 1. Privacy Modal --- */}
       {showPrivacyModal && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-sm shadow-xl max-w-2xl w-full overflow-hidden flex flex-col transform transition-all duration-300 scale-100">
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 sm:p-6 backdrop-blur-sm">
+          {/* Container หลัก: เพิ่มขอบสีส้มและมุมโค้งมน */}
+          <div className="bg-white border-[12px] md:border-[16px] border-[#f97316] rounded-[32px] shadow-2xl max-w-2xl w-full flex flex-col transform transition-all duration-300 scale-100 max-h-[90vh]">
             
-            {/* Modal Header */}
-            <div className="bg-[#b14a4a] text-white p-6 text-center">
-              <h2 className="text-2xl font-serif tracking-tight">Privacy Policy</h2>
+            {/* Modal Header: พื้นหลังสีขาว ตัวอักษรสีดำ ตัวหนา */}
+            <div className="bg-white p-6 text-center border-b border-gray-100 rounded-t-[20px]">
+              <h2 className="text-2xl md:text-3xl font-bold text-black tracking-tight">Privacy Policy</h2>
             </div>
 
-            {/* Modal Content - Scrollable if needed */}
-            <div className="p-8 space-y-6 text-gray-800 leading-relaxed max-h-[70vh] overflow-y-auto">
+            {/* Modal Content - Scrollable */}
+            <div className="p-6 md:p-8 space-y-6 text-gray-700 leading-relaxed overflow-y-auto">
               <p>
                 Vivamus sagittis lacus vel augue laoreet rutrum faucibus dolor auctor. Fusce
                 dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut
@@ -119,17 +120,17 @@ export default function SignUp() {
               </p>
             </div>
 
-            {/* Modal Footer (Buttons) */}
-            <div className="bg-gray-50 px-8 py-6 flex justify-end gap-4 border-t border-gray-100">
+            {/* Modal Footer (Buttons): ปรับเลย์เอาต์ปุ่มและสีสัน */}
+            <div className="bg-white px-6 md:px-8 py-6 flex flex-col sm:flex-row justify-between gap-4 border-t border-gray-100 rounded-b-[20px]">
               <button
-                onClick={() => setShowPrivacyModal(false)} // Just closes, stays on signup page
-                className="bg-[#1a1a1a] text-white px-8 py-3 text-sm font-semibold tracking-wider hover:bg-black transition rounded-sm uppercase"
+                onClick={() => setShowPrivacyModal(false)}
+                className="w-full sm:w-1/2 bg-gray-200 text-black px-6 py-3.5 text-sm font-bold tracking-wider hover:bg-gray-300 transition-colors rounded-xl uppercase"
               >
                 I Disagree
               </button>
               <button
-                onClick={completeRegistration} // Calls API and redirects
-                className="bg-[#1a1a1a] text-white px-8 py-3 text-sm font-semibold tracking-wider hover:bg-black transition rounded-sm uppercase"
+                onClick={completeRegistration}
+                className="w-full sm:w-1/2 bg-[#f97316] text-white px-6 py-3.5 text-sm font-bold tracking-wider hover:bg-[#ea580c] transition-colors rounded-xl uppercase shadow-md shadow-orange-500/20"
               >
                 I Agree
               </button>
@@ -172,7 +173,6 @@ export default function SignUp() {
             </div>
           )}
 
-          {/* Form action calls the interceptor function */}
           <form className="mt-8 space-y-6" onSubmit={handleSignUpClick}>
             <div className="space-y-4">
               {/* --- Full Name --- */}
@@ -182,7 +182,7 @@ export default function SignUp() {
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <User className="h-5 w-5 text-text-muted-light dark:text-text-muted-dark" />
                   </div>
-                  <input id="name" name="name" type="text" required placeholder="Jane Doe" className="..." />
+                  <input id="name" name="name" type="text" required placeholder="Jane Doe" className="appearance-none relative block w-full px-3 py-3 pl-10 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#f97316] focus:border-[#f97316] sm:text-sm transition-colors text-gray-900 dark:text-white" />
                 </div>
               </div>
 
@@ -193,7 +193,7 @@ export default function SignUp() {
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Phone className="h-5 w-5 text-text-muted-light dark:text-text-muted-dark" />
                   </div>
-                  <input id="telephone" name="telephone" type="tel" required placeholder="0812345678" className="..." />
+                  <input id="telephone" name="telephone" type="tel" required placeholder="0812345678" className="appearance-none relative block w-full px-3 py-3 pl-10 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#f97316] focus:border-[#f97316] sm:text-sm transition-colors text-gray-900 dark:text-white" />
                 </div>
               </div>
 
@@ -204,7 +204,7 @@ export default function SignUp() {
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Mail className="h-5 w-5 text-text-muted-light dark:text-text-muted-dark" />
                   </div>
-                  <input id="email" name="email" type="email" required placeholder="jane@example.com" className="..." />
+                  <input id="email" name="email" type="email" required placeholder="jane@example.com" className="appearance-none relative block w-full px-3 py-3 pl-10 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#f97316] focus:border-[#f97316] sm:text-sm transition-colors text-gray-900 dark:text-white" />
                 </div>
               </div>
               
@@ -215,7 +215,7 @@ export default function SignUp() {
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Lock className="h-5 w-5 text-text-muted-light dark:text-text-muted-dark" />
                   </div>
-                  <input id="password" name="password" type="password" required placeholder="••••••••" className="..." />
+                  <input id="password" name="password" type="password" required placeholder="••••••••" className="appearance-none relative block w-full px-3 py-3 pl-10 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#f97316] focus:border-[#f97316] sm:text-sm transition-colors text-gray-900 dark:text-white" />
                 </div>
               </div>
             </div>
@@ -225,7 +225,7 @@ export default function SignUp() {
                 type="submit"
                 disabled={isLoading}
                 className={`group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-xl text-white transition-colors ${
-                  isLoading ? 'bg-primary/70 cursor-not-allowed' : 'bg-primary hover:bg-primary-hover'
+                  isLoading ? 'bg-[#f97316]/70 cursor-not-allowed' : 'bg-[#f97316] hover:bg-[#ea580c]'
                 }`}
               >
                 {isLoading ? 'Creating Account...' : 'Create Account'}
@@ -236,7 +236,7 @@ export default function SignUp() {
 
           <p className="mt-8 text-center text-sm text-text-muted-light dark:text-text-muted-dark">
             Already have an account?{' '}
-            <Link href="/login" className="font-medium text-primary hover:text-primary-hover">
+            <Link href="/login" className="font-medium text-[#f97316] hover:text-[#ea580c]">
               Sign in
             </Link>
           </p>
