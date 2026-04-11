@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Filter, MoreVertical, Edit, Trash2, X, Calendar as CalendarIcon, Clock, MapPin, CheckCircle2, Activity, DollarSign, TrendingUp } from 'lucide-react';
 import axios from 'axios';
+import { validateBookingSchedule } from '@/lib/bookingValidation';
 
 type Booking = {
   id: string;
@@ -99,6 +100,15 @@ export default function AdminBookings() {
 
   const handleSaveChanges = async () => {
     if (editingBooking) {
+      const scheduleCheck = validateBookingSchedule(
+        editingBooking.date,
+        editingBooking.startTime,
+        editingBooking.endTime
+      );
+      if (scheduleCheck.ok === false) {
+        alert(scheduleCheck.message);
+        return;
+      }
       try {
         const token = localStorage.getItem('token');
         // 🌟 เปลี่ยน localhost เป็น API_URL

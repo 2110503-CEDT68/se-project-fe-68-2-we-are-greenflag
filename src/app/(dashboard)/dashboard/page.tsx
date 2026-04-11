@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import axios from 'axios';
+import { formatLocalYmd, validateBookingSchedule } from '@/lib/bookingValidation';
 import { 
   Calendar as CalendarIcon, Clock, MapPin, CreditCard, ArrowRight, 
   MoreHorizontal, Users, IdCard, CalendarCheck, 
@@ -72,6 +73,15 @@ export default function Dashboard() {
 
   const handleSaveChanges = async () => {
     if (editingBooking) {
+      const scheduleCheck = validateBookingSchedule(
+        editingBooking.date,
+        editingBooking.startTime,
+        editingBooking.endTime
+      );
+      if (scheduleCheck.ok === false) {
+        alert(scheduleCheck.message);
+        return;
+      }
       try {
         const token = localStorage.getItem('token');
         
@@ -349,6 +359,7 @@ export default function Dashboard() {
                   <input 
                     type="date" 
                     value={editingBooking.date}
+                    min={formatLocalYmd()}
                     onChange={(e) => setEditingBooking({...editingBooking, date: e.target.value})}
                     className="w-full pl-9 pr-3 py-2.5 bg-white dark:bg-background-dark border border-gray-300 dark:border-border-dark rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary appearance-none"
                   />

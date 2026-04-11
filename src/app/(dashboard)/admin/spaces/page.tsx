@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Building, Plus, Trash2, Edit, X, Clock, Loader2, AlertTriangle } from 'lucide-react';
 import axios from 'axios';
-import Alert from '@/src/components/Alert';
+import Alert from '@/components/Alert';
+import { validateThaiTelephone } from '@/lib/telephoneValidation';
 
 // เพิ่มฟิลด์ที่ตกหล่นใน Interface เพื่อให้แก้ไขฟอร์มได้ครบถ้วน
 interface Coworking {
@@ -163,7 +164,7 @@ export default function AdminSpaces() {
     const fd = new FormData(form);
     const name = (fd.get('name') as string)?.trim();
     const address = (fd.get('address') as string)?.trim();
-    const telephone = (fd.get('telephone') as string)?.trim();
+    const telephoneRaw = (fd.get('telephone') as string)?.trim();
     const priceRaw = fd.get('price_per_hour') as string;
     const open_time = (fd.get('open_time') as string) || '';
     const close_time = (fd.get('close_time') as string) || '';
@@ -171,13 +172,19 @@ export default function AdminSpaces() {
     const status = (fd.get('status') as string) || 'available';
 
     const price_per_hour = Number(priceRaw);
-    if (!name || !address || !telephone || Number.isNaN(price_per_hour) || price_per_hour < 0 || !open_time || !close_time) {
+    if (!name || !address || !telephoneRaw || Number.isNaN(price_per_hour) || price_per_hour < 0 || !open_time || !close_time) {
       setCreateError('กรุณากรอกข้อมูลให้ครบถ้วนและถูกต้อง');
       return;
     }
 
+    const phoneCheck = validateThaiTelephone(telephoneRaw);
+    if (phoneCheck.ok === false) {
+      setCreateError(phoneCheck.message);
+      return;
+    }
+
     const payload = {
-      name, address, telephone, price_per_hour, openTime: open_time, closeTime: close_time, type, status,
+      name, address, telephone: phoneCheck.normalized, price_per_hour, openTime: open_time, closeTime: close_time, type, status,
     };
 
     setCreating(true);
@@ -214,7 +221,7 @@ export default function AdminSpaces() {
     const fd = new FormData(form);
     const name = (fd.get('name') as string)?.trim();
     const address = (fd.get('address') as string)?.trim();
-    const telephone = (fd.get('telephone') as string)?.trim();
+    const telephoneRaw = (fd.get('telephone') as string)?.trim();
     const priceRaw = fd.get('price_per_hour') as string;
     const open_time = (fd.get('open_time') as string) || '';
     const close_time = (fd.get('close_time') as string) || '';
@@ -224,13 +231,19 @@ export default function AdminSpaces() {
     const price_per_hour = Number(priceRaw);
     
     // ตรวจสอบความถูกต้องของข้อมูลเบื้องต้น
-    if (!name || !address || !telephone || Number.isNaN(price_per_hour) || price_per_hour < 0 || !open_time || !close_time) {
+    if (!name || !address || !telephoneRaw || Number.isNaN(price_per_hour) || price_per_hour < 0 || !open_time || !close_time) {
       setEditError('กรุณากรอกข้อมูลให้ครบถ้วนและถูกต้อง');
       return;
     }
 
+    const phoneCheck = validateThaiTelephone(telephoneRaw);
+    if (phoneCheck.ok === false) {
+      setEditError(phoneCheck.message);
+      return;
+    }
+
     const payload = {
-      name, address, telephone, price_per_hour, openTime: open_time, closeTime: close_time, type, status,
+      name, address, telephone: phoneCheck.normalized, price_per_hour, openTime: open_time, closeTime: close_time, type, status,
     };
 
     setEditing(true);
@@ -417,7 +430,8 @@ export default function AdminSpaces() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-zinc-300 mb-1.5">Telephone <span className="text-primary">*</span></label>
-                  <input name="telephone" required placeholder="02-xxx-xxxx" className="w-full px-3 py-2.5 rounded-xl bg-zinc-800/80 border border-zinc-600 text-white placeholder:text-zinc-500 text-sm focus:outline-none focus:ring-2 focus:ring-primary/60" />
+                  <input name="telephone" type="tel" inputMode="numeric" autoComplete="tel" required placeholder="0812345678 หรือ 02-123-4567" className="w-full px-3 py-2.5 rounded-xl bg-zinc-800/80 border border-zinc-600 text-white placeholder:text-zinc-500 text-sm focus:outline-none focus:ring-2 focus:ring-primary/60" />
+                  <p className="mt-1 text-xs text-zinc-500">ตัวเลขเท่านั้น ขึ้นต้นด้วย 0 ความยาว 9 หรือ 10 หลัก</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-zinc-300 mb-1.5">Price / Hour (฿) <span className="text-primary">*</span></label>
@@ -494,7 +508,8 @@ export default function AdminSpaces() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-zinc-300 mb-1.5">Telephone <span className="text-primary">*</span></label>
-                  <input name="telephone" defaultValue={editingSpace.telephone} required className="w-full px-3 py-2.5 rounded-xl bg-zinc-800/80 border border-zinc-600 text-white placeholder:text-zinc-500 text-sm focus:outline-none focus:ring-2 focus:ring-primary/60" />
+                  <input name="telephone" type="tel" inputMode="numeric" autoComplete="tel" defaultValue={editingSpace.telephone} required placeholder="0812345678 หรือ 02-123-4567" className="w-full px-3 py-2.5 rounded-xl bg-zinc-800/80 border border-zinc-600 text-white placeholder:text-zinc-500 text-sm focus:outline-none focus:ring-2 focus:ring-primary/60" />
+                  <p className="mt-1 text-xs text-zinc-500">ตัวเลขเท่านั้น ขึ้นต้นด้วย 0 ความยาว 9 หรือ 10 หลัก</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-zinc-300 mb-1.5">Price / Hour (฿) <span className="text-primary">*</span></label>

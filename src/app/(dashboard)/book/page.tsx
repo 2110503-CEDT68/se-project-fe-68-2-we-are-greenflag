@@ -4,6 +4,7 @@ import { useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Calendar as CalendarIcon, Clock, MapPin, Info, Check, Loader2, AlertCircle } from 'lucide-react';
 import axios from 'axios';
+import { formatLocalYmd, validateBookingSchedule } from '@/lib/bookingValidation';
 
 function BookContent() {
   const searchParams = useSearchParams();
@@ -22,8 +23,7 @@ function BookContent() {
 
   const [selectedDesk, setSelectedDesk] = useState<string | null>(null);
   
-  const today = new Date().toISOString().split('T')[0];
-  const [date, setDate] = useState(today);
+  const [date, setDate] = useState(() => formatLocalYmd());
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('18:00');
   
@@ -37,6 +37,12 @@ function BookContent() {
   const handleBooking = async () => {
     if (!spaceId) {
       setError('ไม่พบข้อมูลสถานที่ กรุณากลับไปเลือกสถานที่จากหน้า Spaces ใหม่');
+      return;
+    }
+
+    const scheduleCheck = validateBookingSchedule(date, startTime, endTime);
+    if (scheduleCheck.ok === false) {
+      setError(scheduleCheck.message);
       return;
     }
     
@@ -166,7 +172,7 @@ function BookContent() {
                       <input 
                         type="date" 
                         value={date}
-                        min={today}
+                        min={formatLocalYmd()}
                         onChange={(e) => setDate(e.target.value)}
                         className="w-full pl-10 pr-4 py-2 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                       />
