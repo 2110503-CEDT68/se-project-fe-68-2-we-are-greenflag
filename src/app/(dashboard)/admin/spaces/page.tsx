@@ -132,7 +132,7 @@ export default function AdminSpaces() {
       const ax = err as { response?: { data?: { message?: string } } };
       console.error('Delete error:', err);
       setAlert({
-        message: 'ไม่สามารถลบได้: ' + (ax.response?.data?.message || 'เกิดข้อผิดพลาด'),
+        message: 'cannot delete: ' + (ax.response?.data?.message || 'An error occurred.'),
         type: 'error'
       });
       closeDeleteModal();
@@ -156,7 +156,7 @@ export default function AdminSpaces() {
     const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : null;
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
     if (!token || role !== 'admin') {
-      setCreateError('เฉพาะผู้ดูแลระบบ (admin) เท่านั้นที่สามารถเพิ่มสถานที่ได้');
+      setCreateError('Only administrators (admins) can add locations');
       return;
     }
 
@@ -173,7 +173,7 @@ export default function AdminSpaces() {
 
     const price_per_hour = Number(priceRaw);
     if (!name || !address || !telephoneRaw || Number.isNaN(price_per_hour) || price_per_hour < 0 || !open_time || !close_time) {
-      setCreateError('กรุณากรอกข้อมูลให้ครบถ้วนและถูกต้อง');
+      setCreateError('Please fill in all the information completely and accurately');
       return;
     }
 
@@ -198,7 +198,7 @@ export default function AdminSpaces() {
       fetchSpaces(); // โหลดข้อมูลใหม่หลังจากสร้างเสร็จ
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { message?: string; msg?: string } } };
-      setCreateError(ax.response?.data?.message || ax.response?.data?.msg || 'ไม่สามารถเพิ่มสถานที่ได้');
+      setCreateError(ax.response?.data?.message || ax.response?.data?.msg || 'cannot add space');
     } finally {
       setCreating(false);
     }
@@ -213,7 +213,7 @@ export default function AdminSpaces() {
 
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
     if (!token) {
-      setEditError('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่');
+      setEditError('Session expired. Please log in again.');
       return;
     }
 
@@ -232,7 +232,7 @@ export default function AdminSpaces() {
     
     // ตรวจสอบความถูกต้องของข้อมูลเบื้องต้น
     if (!name || !address || !telephoneRaw || Number.isNaN(price_per_hour) || price_per_hour < 0 || !open_time || !close_time) {
-      setEditError('กรุณากรอกข้อมูลให้ครบถ้วนและถูกต้อง');
+      setEditError('Please fill in all the information completely and accurately');
       return;
     }
 
@@ -262,7 +262,7 @@ export default function AdminSpaces() {
       });
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { message?: string; msg?: string } } };
-      setEditError(ax.response?.data?.message || ax.response?.data?.msg || 'ไม่สามารถอัปเดตสถานที่ได้');
+      setEditError(ax.response?.data?.message || ax.response?.data?.msg || 'cannot update space');
       setAlert({
         message: 'Failed to update space 🚫',
         type: 'error',
@@ -333,7 +333,7 @@ export default function AdminSpaces() {
               {spaces.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="p-8 text-center text-text-muted-light dark:text-text-muted-dark">
-                    ยังไม่มีข้อมูลสถานที่ในระบบ
+                    No spaces found in the system
                   </td>
                 </tr>
               ) : (
@@ -431,7 +431,7 @@ export default function AdminSpaces() {
                 <div>
                   <label className="block text-sm font-medium text-zinc-300 mb-1.5">Telephone <span className="text-primary">*</span></label>
                   <input name="telephone" type="tel" inputMode="numeric" autoComplete="tel" required placeholder="0812345678 หรือ 02-123-4567" className="w-full px-3 py-2.5 rounded-xl bg-zinc-800/80 border border-zinc-600 text-white placeholder:text-zinc-500 text-sm focus:outline-none focus:ring-2 focus:ring-primary/60" />
-                  <p className="mt-1 text-xs text-zinc-500">ตัวเลขเท่านั้น ขึ้นต้นด้วย 0 ความยาว 9 หรือ 10 หลัก</p>
+                  <p className="mt-1 text-xs text-zinc-500">number only, starts with 0 and has 9 or 10 digits</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-zinc-300 mb-1.5">Price / Hour (฿) <span className="text-primary">*</span></label>
@@ -509,7 +509,7 @@ export default function AdminSpaces() {
                 <div>
                   <label className="block text-sm font-medium text-zinc-300 mb-1.5">Telephone <span className="text-primary">*</span></label>
                   <input name="telephone" type="tel" inputMode="numeric" autoComplete="tel" defaultValue={editingSpace.telephone} required placeholder="0812345678 หรือ 02-123-4567" className="w-full px-3 py-2.5 rounded-xl bg-zinc-800/80 border border-zinc-600 text-white placeholder:text-zinc-500 text-sm focus:outline-none focus:ring-2 focus:ring-primary/60" />
-                  <p className="mt-1 text-xs text-zinc-500">ตัวเลขเท่านั้น ขึ้นต้นด้วย 0 ความยาว 9 หรือ 10 หลัก</p>
+                  <p className="mt-1 text-xs text-zinc-500">number only, starts with 0 and has 9 or 10 digits</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-zinc-300 mb-1.5">Price / Hour (฿) <span className="text-primary">*</span></label>
