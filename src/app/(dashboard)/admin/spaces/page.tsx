@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Building, Plus, Trash2, Edit, X, Clock, Loader2, AlertTriangle } from 'lucide-react';
+import { 
+  Building, Plus, Trash2, Edit, X, Clock, 
+  Loader2, AlertTriangle, ChevronLeft, ChevronRight 
+} from 'lucide-react';
 import axios from 'axios';
 import Alert from '@/components/Alert';
 import { validateThaiTelephone } from '@/lib/telephoneValidation';
 
-// เพิ่มฟิลด์ที่ตกหล่นใน Interface เพื่อให้แก้ไขฟอร์มได้ครบถ้วน
 interface Coworking {
   _id: string;
   name: string;
@@ -24,7 +26,12 @@ export default function AdminSpaces() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
-  const [showAll, setShowAll] = useState(false);
+
+  // Pagination States (เพิ่มใหม่)
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [isCustomRows, setIsCustomRows] = useState(false);
+  const [customRowsValue, setCustomRowsValue] = useState<number | ''>('');
 
   // States สำหรับ Create
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -37,12 +44,12 @@ export default function AdminSpaces() {
   const [editing, setEditing] = useState(false);
   const [editingSpace, setEditingSpace] = useState<Coworking | null>(null);
 
-  // States สำหรับ Delete Confirmation (เพิ่มใหม่)
+  // States สำหรับ Delete Confirmation
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [spaceToDelete, setSpaceToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  //สำหรับเรียกใช้ Alert งับ
+  // สำหรับเรียกใช้ Alert
   const [alert, setAlert] = useState<{
     message: string;
     type: 'success' | 'error' | 'warning';
@@ -69,14 +76,13 @@ export default function AdminSpaces() {
     }
   };
 
-  // จัดการการปิด Modal เพิ่มข้อมูล
+  // จัดการการปิด Modal
   const closeAddModal = useCallback(() => {
     setAddModalOpen(false);
     setCreateError('');
     setCreating(false);
   }, []);
 
-  // จัดการการปิด Modal แก้ไขข้อมูล
   const closeEditModal = useCallback(() => {
     setEditModalOpen(false);
     setEditError('');
@@ -84,7 +90,6 @@ export default function AdminSpaces() {
     setEditingSpace(null);
   }, []);
 
-  // ฟังก์ชันจัดการ Modal ยืนยันการลบ (เพิ่มใหม่)
   const openDeleteModal = (id: string) => {
     setSpaceToDelete(id);
     setDeleteModalOpen(true);
@@ -96,7 +101,6 @@ export default function AdminSpaces() {
     setIsDeleting(false);
   }, []);
 
-  // รองรับการกดปุ่ม ESC เพื่อปิด Modal
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -109,10 +113,8 @@ export default function AdminSpaces() {
     return () => window.removeEventListener('keydown', onKey);
   }, [addModalOpen, editModalOpen, deleteModalOpen, closeAddModal, closeEditModal, closeDeleteModal]);
 
-  // ฟังก์ชันลบข้อมูล (แก้ไขให้ทำงานร่วมกับ Modal และ Alert ของคุณ)
   const confirmDelete = async () => {
     if (!spaceToDelete) return;
-
     setIsDeleting(true);
     try {
       const token = localStorage.getItem('token');
@@ -123,10 +125,9 @@ export default function AdminSpaces() {
       fetchSpaces();
       closeDeleteModal();
       
-      // เรียกใช้ Alert เมื่อลบสำเร็จ
       setAlert({
         message: 'Deleted successfully 🎉',
-        type: 'error' // เปลี่ยนจาก 'success' เป็น 'error' เพื่อให้แสดงพื้นหลังสีแดง
+        type: 'error' 
       });
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { message?: string } } };
@@ -141,14 +142,12 @@ export default function AdminSpaces() {
     }
   };
 
-  // ฟังก์ชันเปิด Modal แก้ไขและดึงข้อมูลเดิมมาใส่
   const openEditModal = (space: Coworking) => {
     setEditingSpace(space);
     setEditError('');
     setEditModalOpen(true);
   };
 
-  // ฟังก์ชันสร้างข้อมูลใหม่
   const handleCreateSpace = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setCreateError('');
@@ -195,7 +194,7 @@ export default function AdminSpaces() {
       });
       form.reset();
       closeAddModal();
-      fetchSpaces(); // โหลดข้อมูลใหม่หลังจากสร้างเสร็จ
+      fetchSpaces(); 
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { message?: string; msg?: string } } };
       setCreateError(ax.response?.data?.message || ax.response?.data?.msg || 'cannot add space');
@@ -204,7 +203,6 @@ export default function AdminSpaces() {
     }
   };
 
-  // ฟังก์ชันอัปเดตข้อมูล (ส่ง PUT/PATCH ไปที่ Backend)
   const handleUpdateSpace = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setEditError('');
@@ -230,7 +228,6 @@ export default function AdminSpaces() {
 
     const price_per_hour = Number(priceRaw);
     
-    // ตรวจสอบความถูกต้องของข้อมูลเบื้องต้น
     if (!name || !address || !telephoneRaw || Number.isNaN(price_per_hour) || price_per_hour < 0 || !open_time || !close_time) {
       setEditError('Please fill in all the information completely and accurately');
       return;
@@ -248,13 +245,12 @@ export default function AdminSpaces() {
 
     setEditing(true);
     try {
-      // ส่งคำสั่งอัปเดตไปที่ Backend (ใช้ PUT method)
       await axios.put(`${API_URL}/coworkings/${editingSpace._id}`, payload, {
         headers: { Authorization: `Bearer ${token}` },
         withCredentials: true,
       });
       closeEditModal();
-      fetchSpaces(); // รีเฟรชข้อมูลในตารางใหม่
+      fetchSpaces();
 
       setAlert({
         message: 'Updated Successfully 🎉',
@@ -272,7 +268,48 @@ export default function AdminSpaces() {
     }
   };
 
-  const displayedSpaces = showAll ? spaces : spaces.slice(0, 5);
+  // --- ส่วนจัดการ Pagination (ลอจิกแบ่งหน้า) ---
+  const safeRowsPerPage = Math.max(1, rowsPerPage);
+  const totalPages = Math.ceil(spaces.length / safeRowsPerPage);
+  
+  // ป้องกันกรณีลบข้อมูลจนหน้าที่เลือกหายไป
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [spaces.length, totalPages, currentPage]);
+
+  const startIndex = (currentPage - 1) * safeRowsPerPage;
+  const endIndex = startIndex + safeRowsPerPage;
+  const displayedSpaces = spaces.slice(startIndex, endIndex);
+
+  // ฟังก์ชันเปลี่ยนจำนวนแถว
+  const handleRowsChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    if (val === 'custom') {
+      setIsCustomRows(true);
+      setCustomRowsValue('');
+    } else {
+      setIsCustomRows(false);
+      setRowsPerPage(Number(val));
+      setCurrentPage(1); // รีเซ็ตกลับไปหน้าแรกเสมอเมื่อเปลี่ยนจำนวนแถว
+    }
+  };
+
+  // ฟังก์ชันจัดการตอนพิมพ์ตัวเลขเอง (Custom)
+  const handleCustomRowsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    if (val === '') {
+      setCustomRowsValue('');
+      return;
+    }
+    const num = parseInt(val, 10);
+    setCustomRowsValue(num);
+    if (!isNaN(num) && num > 0) {
+      setRowsPerPage(num);
+      setCurrentPage(1);
+    }
+  };
 
   if (loading) {
     return (
@@ -318,7 +355,7 @@ export default function AdminSpaces() {
       )}
 
       <div className="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-xl shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto min-h-[300px]">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-background-light dark:bg-background-dark border-b border-border-light dark:border-border-dark">
@@ -370,14 +407,12 @@ export default function AdminSpaces() {
                     </td>
                     <td className="p-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        {/* ผูกฟังก์ชัน openEditModal เข้ากับปุ่ม Edit */}
                         <button 
                           onClick={() => openEditModal(space)}
                           className="p-2 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20 rounded-lg transition-colors text-text-muted-light dark:text-text-muted-dark"
                         >
                           <Edit className="w-4 h-4" />
                         </button>
-                        {/* ผูกฟังก์ชันเปิด Delete Modal ตรงนี้ */}
                         <button
                           onClick={() => openDeleteModal(space._id)}
                           className="p-2 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 rounded-lg transition-colors text-text-muted-light dark:text-text-muted-dark"
@@ -393,19 +428,72 @@ export default function AdminSpaces() {
           </table>
         </div>
 
-        {spaces.length > 5 && (
-          <div className="p-4 border-t border-border-light dark:border-border-dark flex justify-center bg-background-light dark:bg-background-dark/50">
-            <button
-              onClick={() => setShowAll(!showAll)}
-              className="px-4 py-2 text-sm font-medium text-text-muted-light dark:text-text-muted-dark hover:text-primary dark:hover:text-primary transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/50"
-            >
-              {showAll ? 'Show Less' : `View All (${spaces.length})`}
-            </button>
+        {/* --- ส่วน Pagination UI ด้านล่างตาราง --- */}
+        {spaces.length > 0 && (
+          <div className="p-4 border-t border-border-light dark:border-border-dark flex flex-col sm:flex-row items-center justify-between gap-4 bg-background-light dark:bg-background-dark/50">
+            {/* โซนเลือกจำนวนรายการ */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-text-muted-light dark:text-text-muted-dark">Rows per page:</span>
+              <select
+                value={isCustomRows ? 'custom' : rowsPerPage}
+                onChange={handleRowsChange}
+                // แก้ไขสีพื้นหลังและสีตัวหนังสือให้แสดงผลชัดเจนทั้งโหมดสว่างและมืด
+                className="bg-white dark:bg-zinc-800 border border-gray-300 dark:border-zinc-700 text-sm rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/60 text-gray-900 dark:text-white cursor-pointer"
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+                <option value="custom">Custom</option>
+              </select>
+              
+              {/* ช่องกรอกตัวเลข กรณีเลือก Custom */}
+              {isCustomRows && (
+                <input
+                  type="number"
+                  min="1"
+                  value={customRowsValue}
+                  onChange={handleCustomRowsChange}
+                  placeholder="e.g. 15"
+                  // แก้ไขสีพื้นหลังและสีตัวหนังสือ
+                  className="w-20 bg-white dark:bg-zinc-800 border border-gray-300 dark:border-zinc-700 text-sm rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/60 text-gray-900 dark:text-white"
+                />
+              )}
+            </div>
+
+            {/* โซนปุ่มเปลี่ยนหน้า */}
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-text-muted-light dark:text-text-muted-dark">
+                {/* แก้ไขสีตัวเลขให้เป็นสีขาวใน Dark mode */}
+                Page <span className="font-medium text-gray-900 dark:text-white">{totalPages === 0 ? 0 : currentPage}</span> of <span className="font-medium text-gray-900 dark:text-white">{totalPages}</span>
+                <span className="hidden sm:inline"> ({spaces.length} items)</span>
+              </span>
+              
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1 || totalPages === 0}
+                  className="p-1.5 rounded-lg border border-transparent hover:bg-gray-100 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages || totalPages === 0}
+                  className="p-1.5 rounded-lg border border-transparent hover:bg-gray-100 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                  aria-label="Next page"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
           </div>
-        )}        
+        )}     
       </div>
 
       {/* ================= MODAL เพิ่มข้อมูล (CREATE) ================= */}
+      {/* ... (เนื้อหา Modal ของคุณเหมือนเดิมทั้งหมด ไม่มีการเปลี่ยนแปลงครับ) ... */}
       {addModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" role="presentation" onClick={closeAddModal}>
           <div role="dialog" className="w-full max-w-xl rounded-2xl bg-zinc-900 text-zinc-100 border border-zinc-700 shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200" onClick={(ev) => ev.stopPropagation()}>
@@ -418,7 +506,6 @@ export default function AdminSpaces() {
 
             <form onSubmit={handleCreateSpace} className="px-6 pb-6 pt-2 space-y-4">
               {createError && <div className="text-sm text-red-400 bg-red-950/50 border border-red-800/60 rounded-lg px-3 py-2">{createError}</div>}
-              {/* === ซ่อนฟอร์ม Create ไว้ (เหมือนของเดิม) === */}
               <div>
                 <label className="block text-sm font-medium text-zinc-300 mb-1.5">Name <span className="text-primary">*</span></label>
                 <input name="name" required placeholder="e.g. The Hub Bangkok" className="w-full px-3 py-2.5 rounded-xl bg-zinc-800/80 border border-zinc-600 text-white placeholder:text-zinc-500 text-sm focus:outline-none focus:ring-2 focus:ring-primary/60" />
