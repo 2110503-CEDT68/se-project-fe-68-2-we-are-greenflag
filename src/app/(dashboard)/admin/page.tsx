@@ -232,25 +232,24 @@ export default function Admin() {
   ];
 
   if (loading) return <div className="flex justify-center items-center h-[70vh]"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
-
   const currentMonthIndex = new Date().getMonth();
   const isCurrentYear = new Date().getFullYear().toString() === selectedYear;
 
   // 🟢 Component Table Row ที่แก้บั๊กเมนูซ้อนแล้ว (ใช้ menuKey ในการแยกแยะ)
   const TransactionRow = ({ row, menuKey }: { row: any, menuKey: string }) => (
-    <tr className="hover:bg-background-light dark:hover:bg-background-dark transition-colors relative">
-      <td className="px-6 py-4"><div className="flex items-center gap-3"><img src={`https://picsum.photos/seed/${row.user}/40/40`} alt={row.user} className="w-10 h-10 rounded-full" referrerPolicy="no-referrer" /><div><div className="font-medium text-text-light dark:text-text-dark">{row.user}</div><div className="text-xs text-text-muted-light dark:text-text-muted-dark">{row.email}</div></div></div></td>
-      <td className="px-6 py-4 font-medium text-text-light dark:text-text-dark">{row.amount}</td>
-      <td className="px-6 py-4 text-text-muted-light dark:text-text-muted-dark">
+    <tr className="hover:bg-gray-800 dark:hover:bg-gray-800 transition-colors relative">
+      <td className="px-6 py-4"><div className="flex items-center gap-3"><img src={`https://picsum.photos/seed/${row.user}/40/40`} alt={row.user} className="w-10 h-10 rounded-full" referrerPolicy="no-referrer" /><div><div className="font-medium text-white">{row.user}</div><div className="text-xs text-gray-400">{row.email}</div></div></div></td>
+      <td className="px-6 py-4 font-medium text-white">{row.amount}</td>
+      <td className="px-6 py-4 text-gray-400">
         {row.time} <br/> <span className="text-xs opacity-70">{row.coworkingName}</span>
       </td>
       <td className="px-6 py-4"><span className={`px-2.5 py-1 rounded-full text-xs font-medium ${row.statusColor}`}>{row.status}</span></td>
       <td className="px-6 py-4 text-right relative">
-        <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === menuKey ? null : menuKey); }} className="p-2 text-text-muted-light hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"><MoreVertical className="w-4 h-4" /></button>
+        <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === menuKey ? null : menuKey); }} className="p-2 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"><MoreVertical className="w-4 h-4" /></button>
         {openMenuId === menuKey && (
-          <div className="absolute right-12 top-1/2 -translate-y-1/2 w-32 bg-white dark:bg-[#1f1f22] border border-gray-200 dark:border-zinc-700 shadow-xl rounded-xl z-50 overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            <button onClick={() => handleOpenEdit(row)} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-zinc-800 flex items-center gap-2"><Edit className="w-4 h-4" /> Edit</button>
-            <button onClick={() => handleDeleteBooking(row.id)} className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"><Trash2 className="w-4 h-4" /> Delete</button>
+          <div className="absolute right-12 top-1/2 -translate-y-1/2 w-32 bg-gray-800 dark:bg-gray-800 border border-gray-600 dark:border-gray-600 shadow-xl rounded-xl z-50 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => handleOpenEdit(row)} className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 dark:hover:bg-gray-700 flex items-center gap-2"><Edit className="w-4 h-4" /> Edit</button>
+            <button onClick={() => handleDeleteBooking(row.id)} className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-900/20 dark:hover:bg-red-900/20 flex items-center gap-2"><Trash2 className="w-4 h-4" /> Delete</button>
           </div>
         )}
       </td>
@@ -485,29 +484,29 @@ export default function Admin() {
                 </div>
               </div>
               <h3 className="text-text-muted-light dark:text-text-muted-dark font-medium text-sm mb-1">{stat.title}</h3>
-              <p className="text-3xl font-bold tracking-tight">{stat.value}</p>
+              <p className="text-3xl font-bold tracking-tight text-text-light dark:text-text-dark">{stat.value}</p>
             </div>
           ))}
         </div>
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-8 bg-white dark:bg-white rounded-2xl p-6 border border-slate-200">
-          <div className="flex items-start justify-between gap-3 border-b border-slate-200 pb-4">
+        <div className="lg:col-span-2 space-y-8 bg-surface-light dark:bg-surface-dark rounded-2xl p-6 border border-border-light dark:border-border-dark shadow-sm">
+          <div className="flex items-start justify-between gap-3 border-b border-border-light dark:border-border-dark pb-4">
             <div>
-              <h2 className="text-2xl font-bold text-slate-900">WorkSpace Dashboard Report</h2>
-              <p className="text-sm text-slate-600">Summary for year {selectedYear}</p>
+              <h2 className="text-2xl font-bold text-text-light dark:text-text-dark">WorkSpace Dashboard Report</h2>
+              <p className="text-sm text-text-muted-light dark:text-text-muted-dark">Summary for year {selectedYear}</p>
             </div>
-            <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">Generated from live dashboard data</span>
+            <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-surface-light dark:bg-surface-dark text-text-muted-light dark:text-text-muted-dark border border-border-light dark:border-border-dark">Generated from live dashboard data</span>
           </div>
 
           <section className="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-2xl p-6 shadow-sm">
             <div className="flex justify-between items-start mb-6">
               <div>
-                <h2 className="text-lg font-bold">Revenue Overview</h2>
+                <h2 className="text-lg font-bold text-text-light dark:text-text-dark">Revenue Overview</h2>
                 <p className="text-sm text-text-muted-light dark:text-text-muted-dark mt-1">Monthly revenue for the selected year</p>
               </div>
-              <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} className="bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-lg px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/50">
+              <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} className="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-lg px-4 py-2 text-sm font-medium text-text-light dark:text-text-dark focus:outline-none focus:ring-2 focus:ring-primary/50">
                 <option value="2026">2026</option>
                 <option value="2025">2025</option>
                 <option value="2024">2024</option>
@@ -515,25 +514,21 @@ export default function Admin() {
             </div>
             <div className="h-[300px] w-full mt-4">
               <ResponsiveContainer width="100%" height="100%">
-                {/* 🟢 1. แก้ margin-left ให้เป็น 0 (จากเดิม -20) จะได้ไม่ตกขอบ */}
                 <BarChart data={monthlyRevenueData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                  
-                  {/* 🟢 2. เพิ่ม interval={0} เข้าไปใน XAxis เพื่อบังคับให้แสดงทุกเดือน */}
                   <XAxis 
                     dataKey="name" 
                     axisLine={false} 
                     tickLine={false} 
-                    tick={{ fontSize: 12, fill: '#888888' }} 
+                    tick={{ fontSize: 12, fill: '#d1d5db' }} 
                     dy={10} 
                     interval={0} 
                   />
-                  
                   <YAxis hide={true} />
                   <Tooltip cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }} content={({ active, payload }) => {
                       if (active && payload && payload.length) {
                         return (
-                          <div className="bg-white dark:bg-[#1f1f22] border border-gray-200 dark:border-zinc-800 px-3 py-2 rounded-lg shadow-xl">
-                            <p className="text-sm font-bold text-gray-900 dark:text-white">฿{payload[0].value?.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
+                          <div className="bg-gray-800 dark:bg-gray-800 border border-gray-600 px-3 py-2 rounded-lg shadow-xl">
+                            <p className="text-sm font-bold text-white">฿{payload[0].value?.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
                           </div>
                         );
                       }
@@ -554,22 +549,21 @@ export default function Admin() {
             </div>
           </section>
 
-          <section className="bg-white dark:bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+          <section className="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-2xl overflow-hidden shadow-sm">
             <div className="p-6 border-b border-border-light dark:border-border-dark flex justify-between items-center">
-              <div><h2 className="text-lg font-bold">Recent Transactions</h2><p className="text-sm text-text-muted-light dark:text-text-muted-dark">Latest payments and bookings</p></div>
+              <div><h2 className="text-lg font-bold text-text-light dark:text-text-dark">Recent Transactions</h2><p className="text-sm text-text-muted-light dark:text-text-muted-dark">Latest payments and bookings</p></div>
               <button onClick={() => setIsViewAllOpen(true)} className="text-sm font-medium text-primary hover:text-primary-hover transition-colors">View All</button>
             </div>
             <div className="overflow-x-auto pb-20"> 
               <table className="w-full text-left text-sm">
-                <thead className="bg-background-light dark:bg-background-dark text-text-muted-light dark:text-text-muted-dark">
+                <thead className="bg-surface-light dark:bg-surface-dark text-text-muted-light dark:text-text-muted-dark">
                   <tr><th className="px-6 py-4 font-medium">Customer</th><th className="px-6 py-4 font-medium">Amount</th><th className="px-6 py-4 font-medium">Date</th><th className="px-6 py-4 font-medium">Status</th><th className="px-6 py-4 font-medium text-right"></th></tr>
                 </thead>
                 <tbody className="divide-y divide-border-light dark:divide-border-dark">
-                  {/* 🟢 ส่ง menuKey ที่ไม่ซ้ำกันไปให้ Component แถวตาราง */}
                   {displayRecentTransactions.length > 0 ? displayRecentTransactions.map((row, i) => (
                     <TransactionRow key={`recent-${i}`} row={row} menuKey={`recent-${i}`} />
                   )) : (
-                    <tr><td colSpan={5} className="px-6 py-8 text-center text-text-muted-light dark:text-text-muted-dark">No recent transactions found.</td></tr>
+                    <tr><td colSpan={5} className="px-6 py-8 text-center text-gray-400">No recent transactions found.</td></tr>
                   )}
                 </tbody>
               </table>
