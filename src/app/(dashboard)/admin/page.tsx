@@ -1,42 +1,369 @@
-import { Users, Calendar, CreditCard, Activity, ArrowUpRight, ArrowDownRight, MoreVertical, Download, Filter, Banknote, CalendarCheck, Building, UserPlus, CalendarPlus, Receipt, BarChart } from 'lucide-react';
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { 
+  Users, Calendar, CreditCard, Activity, ArrowUpRight, ArrowDownRight, 
+  MoreVertical, Download, Filter, Banknote, CalendarCheck, Building, 
+  UserPlus, CalendarPlus, Receipt, BarChart as BarChartIcon, X, Loader2, Edit, Trash2,
+  ArrowUpDown 
+} from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 export default function Admin() {
+  const [stats, setStats] = useState({ revenue: 0, members: 0, bookingsToday: 0, occupancy: 0 });
+  const [allTransactions, setAllTransactions] = useState<any[]>([]);
+  const [isViewAllOpen, setIsViewAllOpen] = useState(false);
+  const [monthlyRevenueData, setMonthlyRevenueData] = useState<any[]>([]);
+  const [selectedYear, setSelectedYear] = useState('2026'); 
+  const [loading, setLoading] = useState(true);
+
+  // Modals & Forms
+  const [activeModal, setActiveModal] = useState<string | null>(null);
+  const [spaces, setSpaces] = useState<any[]>([]); 
+  const [usersList, setUsersList] = useState<any[]>([]); 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [userForm, setUserForm] = useState({ name: '', email: '', telephone: '', password: '', role: 'user' });
+  const [bookingForm, setBookingForm] = useState({ coworkingId: '', desk: '', date: '', startTime: '', endTime: '', user: '' });
+
+  // 🟢 Dropdown Menu State (จัดการให้เปิดได้ทีละอัน)
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [editBookingForm, setEditBookingForm] = useState({ id: '', coworkingId: '', desk: '', date: '', startTime: '', endTime: '' });
+  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
+
+  // State สำหรับ Filter และ Sort
+  const [filterSpace, setFilterSpace] = useState('All');
+  const [sortBy, setSortBy] = useState('date-desc'); 
+
+  const API_URL = 'http://localhost:5000/api/v1';
+
+  const fetchDashboardData = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const config = { headers: { Authorization: `Bearer ${token}` }, withCredentials: true };
+      const res = await axios.get(`${API_URL}/reservations/dashboard/stats?year=${selectedYear}`, config);
+      
+      if (res.data.success) {
+         const dbStats = res.data.data;
+         setStats({ revenue: dbStats.revenue, members: dbStats.members, bookingsToday: dbStats.bookingsToday, occupancy: dbStats.occupancy });
+         setAllTransactions(dbStats.recentTransactions); 
+         setMonthlyRevenueData(dbStats.monthlyRevenue || []);
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    axios.get(`${API_URL}/coworkings`).then(res => setSpaces(res.data.data)).catch(err => console.log(err));
+  }, []);
+
+  useEffect(() => { fetchDashboardData(); }, [API_URL, selectedYear]);
+
+  useEffect(() => {
+    if (activeModal === 'newBooking' || activeModal === 'editBooking') {
+      const token = localStorage.getItem('token');
+      const config = { headers: { Authorization: `Bearer ${token}` }, withCredentials: true };
+      axios.get(`${API_URL}/auth/users`, config).then(res => setUsersList(res.data.data || res.data)).catch(err => console.log(err));
+    }
+  }, [activeModal]);
+
+  // 🟢 ระบบกรองและจัดเรียงข้อมูล
+  const filteredTransactions = allTransactions
+    .filter(t => {
+      // กรองสาขา
+      const matchSpace = filterSpace === 'All' || t.coworkingId === filterSpace;
+      return matchSpace;
+    })
+    .sort((a, b) => {
+      // จัดเรียงข้อมูล
+      if (sortBy === 'date-desc') {
+        return new Date(b.rawDate || b.time).getTime() - new Date(a.rawDate || a.time).getTime();
+      } else if (sortBy === 'date-asc') {
+        return new Date(a.rawDate || a.time).getTime() - new Date(b.rawDate || b.time).getTime();
+      } else if (sortBy === 'amount-desc') {
+        const valA = parseFloat(a.amount.replace(/[^0-9.-]+/g, ""));
+        const valB = parseFloat(b.amount.replace(/[^0-9.-]+/g, ""));
+        return valB - valA;
+      } else if (sortBy === 'amount-asc') {
+        const valA = parseFloat(a.amount.replace(/[^0-9.-]+/g, ""));
+        const valB = parseFloat(b.amount.replace(/[^0-9.-]+/g, ""));
+        return valA - valB;
+      }
+      return 0;
+    });
+
+  const displayRecentTransactions = filteredTransactions.slice(0, 5);
+
+  // ==================== ACTION HANDLERS ====================
+  const handleDeleteBooking = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this booking?")) return;
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`${API_URL}/reservations/${id}`, { headers: { Authorization: `Bearer ${token}` }, withCredentials: true });
+      alert('✅ Booking deleted successfully!');
+      setOpenMenuId(null); fetchDashboardData();
+    } catch (err: any) { alert('❌ Failed to delete: ' + (err.response?.data?.message || err.message)); }
+  };
+
+  const handleOpenEdit = (transaction: any) => {
+    setEditBookingForm({
+      id: transaction.id, coworkingId: transaction.coworkingId || '', desk: transaction.desk || '',
+      date: transaction.rawDate || '', startTime: transaction.startTime || '', endTime: transaction.endTime || ''
+    });
+    setOpenMenuId(null); setActiveModal('editBooking'); 
+  };
+
+  const handleUpdateBooking = async (e: React.FormEvent) => {
+    e.preventDefault(); setIsSubmitting(true);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(`${API_URL}/reservations/${editBookingForm.id}`, editBookingForm, { headers: { Authorization: `Bearer ${token}` }, withCredentials: true });
+      alert('✅ Booking updated successfully!'); setActiveModal(null); fetchDashboardData();
+    } catch (err: any) { alert('❌ Failed to update: ' + (err.response?.data?.message || err.message)); } 
+    finally { setIsSubmitting(false); }
+  };
+
+  const handleAddUser = async (e: React.FormEvent) => {
+    e.preventDefault(); setIsSubmitting(true);
+    try {
+      await axios.post(`${API_URL}/auth/register`, userForm);
+      alert('✅ User added successfully!'); setActiveModal(null); setUserForm({ name: '', email: '', telephone: '', password: '', role: 'user' }); fetchDashboardData();
+    } catch (err: any) { alert('❌ Failed: ' + (err.response?.data?.message || err.message)); } 
+    finally { setIsSubmitting(false); }
+  };
+
+  const handleNewBooking = async (e: React.FormEvent) => {
+    e.preventDefault(); setIsSubmitting(true);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(`${API_URL}/coworkings/${bookingForm.coworkingId}/reservations`, bookingForm, { headers: { Authorization: `Bearer ${token}` }, withCredentials: true });
+      alert('✅ Booking created successfully!'); setActiveModal(null); setBookingForm({ coworkingId: '', desk: '', date: '', startTime: '', endTime: '', user: '' }); fetchDashboardData();
+    } catch (err: any) { alert('❌ Failed: ' + (err.response?.data?.message || err.message)); } 
+    finally { setIsSubmitting(false); }
+  };
+
+  const handleSendInvoice = async () => {
+    if (!selectedInvoice) return alert('Please select a transaction first.');
+    setIsSubmitting(true);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(`${API_URL}/reservations/${selectedInvoice.id}/invoice`, 
+        { amount: selectedInvoice.amount, date: selectedInvoice.time },
+        { headers: { Authorization: `Bearer ${token}` }, withCredentials: true }
+      );
+      alert(`✅ Invoice has been sent to ${selectedInvoice.email} successfully!`);
+      setActiveModal(null); setSelectedInvoice(null);
+    } catch (err: any) { alert('❌ Failed to send invoice: ' + (err.response?.data?.message || err.message)); } 
+    finally { setIsSubmitting(false); }
+  };
+
+  const handleGenerateReport = () => {
+    if (filteredTransactions.length === 0) return alert('No transactions to export.');
+    const headers = ['Customer', 'Email', 'Amount', 'Date', 'Status'];
+    const csvRows = [headers.join(',')];
+    filteredTransactions.forEach(t => {
+      const rawAmount = t.amount.replace(/[^0-9.-]+/g, "");
+      csvRows.push(`"${t.user}","${t.email}","${rawAmount}","${t.time}","${t.status}"`);
+    });
+    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url; link.setAttribute('download', `revenue_report_${selectedYear}.csv`);
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+  };
+
+  const statCards = [
+    { title: 'Total Revenue', value: `฿${stats.revenue.toLocaleString(undefined, {minimumFractionDigits: 2})}`, change: '+12.5%', icon: Banknote, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+    { title: 'Active Members', value: stats.members.toLocaleString(), change: '+5.2%', icon: Users, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+    { title: 'Bookings Today', value: stats.bookingsToday.toLocaleString(), change: '+2.1%', icon: CalendarCheck, color: 'text-purple-500', bg: 'bg-purple-500/10' },
+    { title: 'Space Occupancy', value: `${stats.occupancy}%`, change: stats.occupancy > 50 ? '+1.5%' : '-2.4%', icon: Building, color: 'text-orange-500', bg: 'bg-orange-500/10', negative: stats.occupancy < 50 },
+  ];
+
+  if (loading) return <div className="flex justify-center items-center h-[70vh]"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+
+  const currentMonthIndex = new Date().getMonth();
+  const isCurrentYear = new Date().getFullYear().toString() === selectedYear;
+
+  // 🟢 Component Table Row ที่แก้บั๊กเมนูซ้อนแล้ว (ใช้ menuKey ในการแยกแยะ)
+  const TransactionRow = ({ row, menuKey }: { row: any, menuKey: string }) => (
+    <tr className="hover:bg-background-light dark:hover:bg-background-dark transition-colors relative">
+      <td className="px-6 py-4"><div className="flex items-center gap-3"><img src={`https://picsum.photos/seed/${row.user}/40/40`} alt={row.user} className="w-10 h-10 rounded-full" referrerPolicy="no-referrer" /><div><div className="font-medium text-text-light dark:text-text-dark">{row.user}</div><div className="text-xs text-text-muted-light dark:text-text-muted-dark">{row.email}</div></div></div></td>
+      <td className="px-6 py-4 font-medium text-text-light dark:text-text-dark">{row.amount}</td>
+      <td className="px-6 py-4 text-text-muted-light dark:text-text-muted-dark">
+        {row.time} <br/> <span className="text-xs opacity-70">{row.coworkingName}</span>
+      </td>
+      <td className="px-6 py-4"><span className={`px-2.5 py-1 rounded-full text-xs font-medium ${row.statusColor}`}>{row.status}</span></td>
+      <td className="px-6 py-4 text-right relative">
+        <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === menuKey ? null : menuKey); }} className="p-2 text-text-muted-light hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"><MoreVertical className="w-4 h-4" /></button>
+        {openMenuId === menuKey && (
+          <div className="absolute right-12 top-1/2 -translate-y-1/2 w-32 bg-white dark:bg-[#1f1f22] border border-gray-200 dark:border-zinc-700 shadow-xl rounded-xl z-50 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => handleOpenEdit(row)} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-zinc-800 flex items-center gap-2"><Edit className="w-4 h-4" /> Edit</button>
+            <button onClick={() => handleDeleteBooking(row.id)} className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"><Trash2 className="w-4 h-4" /> Delete</button>
+          </div>
+        )}
+      </td>
+    </tr>
+  );
+
   return (
-    <div className="max-w-7xl mx-auto space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="max-w-7xl mx-auto space-y-8 relative" onClick={() => { setOpenMenuId(null); }}>
+
+      {/* ======================= MODALS ======================= */}
+      {/* Edit Booking */}
+      {activeModal === 'editBooking' && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setActiveModal(null)}>
+          <div className="w-full max-w-lg rounded-2xl bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark shadow-2xl p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6"><h2 className="text-xl font-bold">Edit Booking</h2><button onClick={() => setActiveModal(null)} className="p-2 hover:bg-background-light dark:hover:bg-background-dark rounded-lg"><X className="w-5 h-5" /></button></div>
+            <form onSubmit={handleUpdateBooking} className="space-y-4">
+              <div><label className="block text-sm mb-1">Location / Space</label><select required value={editBookingForm.coworkingId} onChange={e => setEditBookingForm({...editBookingForm, coworkingId: e.target.value})} className="w-full p-2.5 rounded-lg border dark:border-zinc-700 dark:bg-zinc-800"><option value="">-- Select a space --</option>{spaces.map(s => <option key={s._id} value={s._id}>{s.name} ({s.type})</option>)}</select></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div><label className="block text-sm mb-1">Desk No.</label><input required value={editBookingForm.desk} onChange={e => setEditBookingForm({...editBookingForm, desk: e.target.value})} className="w-full p-2.5 rounded-lg border dark:border-zinc-700 dark:bg-zinc-800" /></div>
+                <div><label className="block text-sm mb-1">Date</label><input type="date" required value={editBookingForm.date} onChange={e => setEditBookingForm({...editBookingForm, date: e.target.value})} className="w-full p-2.5 rounded-lg border dark:border-zinc-700 dark:bg-zinc-800 scheme-dark"/></div>
+                <div><label className="block text-sm mb-1">Start Time</label><input type="time" required value={editBookingForm.startTime} onChange={e => setEditBookingForm({...editBookingForm, startTime: e.target.value})} className="w-full p-2.5 rounded-lg border dark:border-zinc-700 dark:bg-zinc-800 scheme-dark"/></div>
+                <div><label className="block text-sm mb-1">End Time</label><input type="time" required value={editBookingForm.endTime} onChange={e => setEditBookingForm({...editBookingForm, endTime: e.target.value})} className="w-full p-2.5 rounded-lg border dark:border-zinc-700 dark:bg-zinc-800 scheme-dark"/></div>
+              </div>
+              <button type="submit" disabled={isSubmitting} className="w-full py-3 mt-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold flex justify-center items-center gap-2">{isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Save Changes'}</button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add User */}
+      {activeModal === 'addUser' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setActiveModal(null)}>
+          <div className="w-full max-w-md rounded-2xl bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark shadow-2xl p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6"><h2 className="text-xl font-bold">Add New User</h2><button onClick={() => setActiveModal(null)} className="p-2"><X className="w-5 h-5" /></button></div>
+            <form onSubmit={handleAddUser} className="space-y-4">
+              <div><label className="block text-sm mb-1">Full Name</label><input required value={userForm.name} onChange={e => setUserForm({...userForm, name: e.target.value})} className="w-full p-2.5 rounded-lg border dark:border-zinc-700 dark:bg-zinc-800" /></div>
+              <div><label className="block text-sm mb-1">Email</label><input type="email" required value={userForm.email} onChange={e => setUserForm({...userForm, email: e.target.value})} className="w-full p-2.5 rounded-lg border dark:border-zinc-700 dark:bg-zinc-800" /></div>
+              <div><label className="block text-sm mb-1">Telephone</label><input required value={userForm.telephone} onChange={e => setUserForm({...userForm, telephone: e.target.value})} className="w-full p-2.5 rounded-lg border dark:border-zinc-700 dark:bg-zinc-800" /></div>
+              <div><label className="block text-sm mb-1">Password</label><input type="password" required value={userForm.password} onChange={e => setUserForm({...userForm, password: e.target.value})} className="w-full p-2.5 rounded-lg border dark:border-zinc-700 dark:bg-zinc-800" /></div>
+              <button type="submit" disabled={isSubmitting} className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold flex justify-center items-center gap-2">{isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Create User'}</button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* New Booking */}
+      {activeModal === 'newBooking' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setActiveModal(null)}>
+          <div className="w-full max-w-lg rounded-2xl bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark shadow-2xl p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6"><h2 className="text-xl font-bold">New Booking</h2><button onClick={() => setActiveModal(null)} className="p-2"><X className="w-5 h-5" /></button></div>
+            <form onSubmit={handleNewBooking} className="space-y-4">
+              <div><label className="block text-sm mb-1">Customer</label><select required value={bookingForm.user} onChange={e => setBookingForm({...bookingForm, user: e.target.value})} className="w-full p-2.5 rounded-lg border dark:border-zinc-700 dark:bg-zinc-800"><option value="">-- Select a customer --</option>{usersList.map((u: any) => (<option key={u._id} value={u._id}>{u.name}</option>))}</select></div>
+              <div><label className="block text-sm mb-1">Location / Space</label><select required value={bookingForm.coworkingId} onChange={e => setBookingForm({...bookingForm, coworkingId: e.target.value})} className="w-full p-2.5 rounded-lg border dark:border-zinc-700 dark:bg-zinc-800"><option value="">-- Select a space --</option>{spaces.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}</select></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div><label className="block text-sm mb-1">Desk No.</label><input required value={bookingForm.desk} onChange={e => setBookingForm({...bookingForm, desk: e.target.value})} className="w-full p-2.5 rounded-lg border dark:border-zinc-700 dark:bg-zinc-800" /></div>
+                <div><label className="block text-sm mb-1">Date</label><input type="date" required value={bookingForm.date} onChange={e => setBookingForm({...bookingForm, date: e.target.value})} className="w-full p-2.5 rounded-lg border dark:border-zinc-700 dark:bg-zinc-800 scheme-dark"/></div>
+                <div><label className="block text-sm mb-1">Start Time</label><input type="time" required value={bookingForm.startTime} onChange={e => setBookingForm({...bookingForm, startTime: e.target.value})} className="w-full p-2.5 rounded-lg border dark:border-zinc-700 dark:bg-zinc-800 scheme-dark"/></div>
+                <div><label className="block text-sm mb-1">End Time</label><input type="time" required value={bookingForm.endTime} onChange={e => setBookingForm({...bookingForm, endTime: e.target.value})} className="w-full p-2.5 rounded-lg border dark:border-zinc-700 dark:bg-zinc-800 scheme-dark"/></div>
+              </div>
+              <button type="submit" disabled={isSubmitting} className="w-full py-3 mt-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold flex justify-center items-center gap-2">{isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Confirm Booking'}</button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Invoice */}
+      {activeModal === 'invoice' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => {setActiveModal(null); setSelectedInvoice(null);}}>
+          <div className="w-full max-w-md rounded-2xl bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark shadow-2xl p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6"><h2 className="text-xl font-bold">Quick Invoice</h2><button onClick={() => {setActiveModal(null); setSelectedInvoice(null);}} className="p-2"><X className="w-5 h-5" /></button></div>
+            <p className="text-sm text-text-muted-light mb-4">Select a transaction to issue an official invoice to their email.</p>
+            <div className="space-y-3 mb-6 max-h-60 overflow-y-auto pr-2">
+              {filteredTransactions.map((t, i) => (
+                <div key={i} onClick={() => setSelectedInvoice(t)} className={`flex justify-between items-center p-3 rounded-xl border cursor-pointer transition-all ${selectedInvoice?.id === t.id ? 'border-emerald-500 bg-emerald-500/10 shadow-sm' : 'border-border-light dark:border-zinc-700 hover:border-emerald-500/50'}`}>
+                  <div><div className="font-medium text-sm">{t.user}</div><div className="text-xs text-text-muted-light">{t.email}</div></div>
+                  <div className={`font-bold ${selectedInvoice?.id === t.id ? 'text-emerald-600' : 'text-emerald-500'}`}>{t.amount}</div>
+                </div>
+              ))}
+            </div>
+            <button onClick={handleSendInvoice} disabled={!selectedInvoice || isSubmitting} className={`w-full py-3 rounded-lg font-bold flex justify-center items-center gap-2 transition-colors ${!selectedInvoice ? 'bg-gray-300 dark:bg-zinc-700 text-gray-500 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 text-white'}`}>
+              {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Generate & Send Email'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* View All Transactions */}
+      {isViewAllOpen && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setIsViewAllOpen(false)}>
+          <div className="w-full max-w-5xl max-h-[80vh] flex flex-col rounded-2xl bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark shadow-2xl overflow-hidden" onClick={e => { e.stopPropagation(); setOpenMenuId(null); }}>
+            <div className="flex justify-between items-center px-6 py-4 border-b border-border-light dark:border-border-dark">
+              <div><h2 className="text-xl font-bold">All Transactions</h2><p className="text-sm text-text-muted-light">A complete list of all bookings and payments.</p></div>
+              <button onClick={() => setIsViewAllOpen(false)} className="p-2"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-0 pb-20">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-background-light dark:bg-background-dark text-text-muted-light sticky top-0 z-10">
+                  <tr><th className="px-6 py-4 font-medium">Customer</th><th className="px-6 py-4 font-medium">Amount</th><th className="px-6 py-4 font-medium">Date</th><th className="px-6 py-4 font-medium">Status</th><th className="px-6 py-4 font-medium text-right"></th></tr>
+                </thead>
+                <tbody className="divide-y divide-border-light dark:divide-border-dark">
+                  {/* 🟢 ส่ง menuKey ที่ไม่ซ้ำกันไปให้ Component แถวตาราง */}
+                  {filteredTransactions.length > 0 ? filteredTransactions.map((row, i) => <TransactionRow key={`all-${i}`} row={row} menuKey={`all-${i}`} />) : <tr><td colSpan={5} className="px-6 py-8 text-center text-text-muted-light">No transactions found.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🟢 ส่วน Header หลักของ Dashboard */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight mb-1">Dashboard Overview</h1>
           <p className="text-text-muted-light dark:text-text-muted-dark">Welcome back, here's what's happening today.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-xl text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-            <Filter className="w-4 h-4" />
-            Filter
-          </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary-hover transition-colors">
-            <Download className="w-4 h-4" />
-            Export
+        
+        {/* 🟢 เครื่องมือกรองและจัดเรียง (Filter & Sort) */}
+        <div className="flex flex-wrap items-center gap-3">
+          
+          {/* Filter by Space */}
+          <div className="relative">
+            <Filter className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted-light pointer-events-none" />
+            <select 
+              value={filterSpace}
+              onChange={(e) => setFilterSpace(e.target.value)}
+              className="pl-9 pr-8 py-2 bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-xl text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer appearance-none"
+            >
+              <option value="All">All Spaces</option>
+              {spaces.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
+            </select>
+          </div>
+
+          {/* Sort By */}
+          <div className="relative">
+            <ArrowUpDown className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted-light pointer-events-none" />
+            <select 
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="pl-9 pr-8 py-2 bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-xl text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer appearance-none"
+            >
+              <option value="date-desc">Newest Date</option>
+              <option value="date-asc">Oldest Date</option>
+              <option value="amount-desc">Highest Amount</option>
+              <option value="amount-asc">Lowest Amount</option>
+            </select>
+          </div>
+
+          <button onClick={handleGenerateReport} className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary-hover transition-colors">
+            <Download className="w-4 h-4" /> Export CSV
           </button>
         </div>
       </div>
 
-      {/* System Overview */}
       <section>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[
-            { title: 'Total Revenue', value: '$45,231.89', change: '+20.1%', icon: Banknote, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-            { title: 'Active Members', value: '2,350', change: '+15.5%', icon: Users, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-            { title: 'Bookings Today', value: '142', change: '+12.3%', icon: CalendarCheck, color: 'text-purple-500', bg: 'bg-purple-500/10' },
-            { title: 'Space Occupancy', value: '78%', change: '-2.4%', icon: Building, color: 'text-orange-500', bg: 'bg-orange-500/10', negative: true },
-          ].map((stat, i) => (
+          {statCards.map((stat, i) => (
             <div key={i} className="bg-surface-light dark:bg-surface-dark p-6 rounded-2xl border border-border-light dark:border-border-dark shadow-sm">
               <div className="flex justify-between items-start mb-4">
-                <div className={`p-3 rounded-xl ${stat.bg} ${stat.color}`}>
-                  <stat.icon className="w-6 h-6" />
-                </div>
+                <div className={`p-3 rounded-xl ${stat.bg} ${stat.color}`}><stat.icon className="w-6 h-6" /></div>
                 <div className={`flex items-center gap-1 text-sm font-medium px-2.5 py-1 rounded-full ${stat.negative ? 'bg-red-500/10 text-red-500' : 'bg-emerald-500/10 text-emerald-500'}`}>
-                  {stat.negative ? <ArrowDownRight className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
-                  {stat.change}
+                  {stat.negative ? <ArrowDownRight className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />} {stat.change}
                 </div>
               </div>
               <h3 className="text-text-muted-light dark:text-text-muted-dark font-medium text-sm mb-1">{stat.title}</h3>
@@ -47,141 +374,91 @@ export default function Admin() {
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column */}
         <div className="lg:col-span-2 space-y-8">
-          {/* Revenue Chart (Mock) */}
           <section className="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-2xl p-6 shadow-sm">
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-start mb-6">
               <div>
                 <h2 className="text-lg font-bold">Revenue Overview</h2>
-                <p className="text-sm text-text-muted-light dark:text-text-muted-dark">Monthly revenue for the current year</p>
+                <p className="text-sm text-text-muted-light dark:text-text-muted-dark mt-1">Monthly revenue for the selected year</p>
               </div>
-              <select className="bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-lg px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/50 text-text-light dark:text-text-dark">
-                <option>2026</option>
-                <option>2025</option>
+              <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} className="bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-lg px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/50">
+                <option value="2026">2026</option>
+                <option value="2025">2025</option>
+                <option value="2024">2024</option>
               </select>
             </div>
-            <div className="h-72 flex items-end justify-between gap-2 pt-4">
-              {[40, 55, 45, 70, 65, 85, 90, 75, 80, 95, 85, 100].map((height, i) => (
-                <div key={i} className="w-full h-full flex flex-col justify-end items-center gap-3 group">
-                  <div 
-                    className="w-full bg-primary/20 hover:bg-primary/40 dark:bg-primary/20 dark:hover:bg-primary/40 rounded-t-md transition-all relative"
-                    style={{ height: `${height}%` }}
-                  >
-                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-xs py-1.5 px-2.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap font-medium shadow-lg z-10">
-                      ${(height * 450).toLocaleString()}
-                    </div>
-                  </div>
-                  <span className="text-xs text-text-muted-light dark:text-text-muted-dark font-medium uppercase tracking-wider">
-                    {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][i]}
-                  </span>
-                </div>
-              ))}
+            <div className="h-[300px] w-full mt-4">
+              <ResponsiveContainer width="100%" height="100%">
+                {/* 🟢 1. แก้ margin-left ให้เป็น 0 (จากเดิม -20) จะได้ไม่ตกขอบ */}
+                <BarChart data={monthlyRevenueData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                  
+                  {/* 🟢 2. เพิ่ม interval={0} เข้าไปใน XAxis เพื่อบังคับให้แสดงทุกเดือน */}
+                  <XAxis 
+                    dataKey="name" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fontSize: 12, fill: '#888888' }} 
+                    dy={10} 
+                    interval={0} 
+                  />
+                  
+                  <YAxis hide={true} />
+                  <Tooltip cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }} content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        return (
+                          <div className="bg-white dark:bg-[#1f1f22] border border-gray-200 dark:border-zinc-800 px-3 py-2 rounded-lg shadow-xl">
+                            <p className="text-sm font-bold text-gray-900 dark:text-white">฿{payload[0].value?.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Bar dataKey="total" radius={[4, 4, 0, 0]}>
+                    {monthlyRevenueData.map((entry, index) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={(isCurrentYear && index === currentMonthIndex) ? '#ea580c' : '#7c2d12'} 
+                        className="transition-all duration-300 hover:opacity-80" 
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </section>
 
-          {/* Recent Transactions */}
           <section className="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-2xl overflow-hidden shadow-sm">
             <div className="p-6 border-b border-border-light dark:border-border-dark flex justify-between items-center">
-              <div>
-                <h2 className="text-lg font-bold">Recent Transactions</h2>
-                <p className="text-sm text-text-muted-light dark:text-text-muted-dark">Latest payments and bookings</p>
-              </div>
-              <button className="text-sm font-medium text-primary hover:text-primary-hover transition-colors">View All</button>
+              <div><h2 className="text-lg font-bold">Recent Transactions</h2><p className="text-sm text-text-muted-light dark:text-text-muted-dark">Latest payments and bookings</p></div>
+              <button onClick={() => setIsViewAllOpen(true)} className="text-sm font-medium text-primary hover:text-primary-hover transition-colors">View All</button>
             </div>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto pb-20"> 
               <table className="w-full text-left text-sm">
                 <thead className="bg-background-light dark:bg-background-dark text-text-muted-light dark:text-text-muted-dark">
-                  <tr>
-                    <th className="px-6 py-4 font-medium">Customer</th>
-                    <th className="px-6 py-4 font-medium">Amount</th>
-                    <th className="px-6 py-4 font-medium">Date</th>
-                    <th className="px-6 py-4 font-medium">Status</th>
-                    <th className="px-6 py-4 font-medium text-right"></th>
-                  </tr>
+                  <tr><th className="px-6 py-4 font-medium">Customer</th><th className="px-6 py-4 font-medium">Amount</th><th className="px-6 py-4 font-medium">Date</th><th className="px-6 py-4 font-medium">Status</th><th className="px-6 py-4 font-medium text-right"></th></tr>
                 </thead>
                 <tbody className="divide-y divide-border-light dark:divide-border-dark">
-                  {[
-                    { user: 'Sarah Jenkins', email: 'sarah.j@example.com', amount: '$299.00', time: 'Today, 10:42 AM', status: 'Completed', statusColor: 'bg-emerald-500/10 text-emerald-500' },
-                    { user: 'Michael Chen', email: 'm.chen@example.com', amount: '$1,200.00', time: 'Today, 09:15 AM', status: 'Completed', statusColor: 'bg-emerald-500/10 text-emerald-500' },
-                    { user: 'Emma Watson', email: 'emma.w@example.com', amount: '$45.00', time: 'Yesterday, 04:30 PM', status: 'Refunded', statusColor: 'bg-gray-500/10 text-gray-500 dark:text-gray-400' },
-                    { user: 'David Miller', email: 'david.m@example.com', amount: '$150.00', time: 'Yesterday, 02:10 PM', status: 'Failed', statusColor: 'bg-red-500/10 text-red-500' },
-                  ].map((row, i) => (
-                    <tr key={i} className="hover:bg-background-light dark:hover:bg-background-dark transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <img src={`https://picsum.photos/seed/user${i}/40/40`} alt={row.user} className="w-10 h-10 rounded-full" referrerPolicy="no-referrer" />
-                          <div>
-                            <div className="font-medium">{row.user}</div>
-                            <div className="text-xs text-text-muted-light dark:text-text-muted-dark">{row.email}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 font-medium">{row.amount}</td>
-                      <td className="px-6 py-4 text-text-muted-light dark:text-text-muted-dark">{row.time}</td>
-                      <td className="px-6 py-4">
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${row.statusColor}`}>
-                          {row.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <button className="p-2 text-text-muted-light dark:text-text-muted-dark hover:text-primary hover:bg-primary/10 rounded-lg transition-colors">
-                          <MoreVertical className="w-4 h-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {/* 🟢 ส่ง menuKey ที่ไม่ซ้ำกันไปให้ Component แถวตาราง */}
+                  {displayRecentTransactions.length > 0 ? displayRecentTransactions.map((row, i) => (
+                    <TransactionRow key={`recent-${i}`} row={row} menuKey={`recent-${i}`} />
+                  )) : (
+                    <tr><td colSpan={5} className="px-6 py-8 text-center text-text-muted-light dark:text-text-muted-dark">No recent transactions found.</td></tr>
+                  )}
                 </tbody>
               </table>
             </div>
           </section>
         </div>
 
-        {/* Right Column */}
         <div className="space-y-8">
-          {/* Quick Actions */}
           <section className="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-2xl p-6 shadow-sm">
             <h2 className="text-lg font-bold mb-4">Quick Actions</h2>
             <div className="grid grid-cols-2 gap-4">
-              {[
-                { label: 'Add User', icon: UserPlus, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-                { label: 'New Booking', icon: CalendarPlus, color: 'text-purple-500', bg: 'bg-purple-500/10' },
-                { label: 'Create Invoice', icon: Receipt, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-                { label: 'Generate Report', icon: BarChart, color: 'text-orange-500', bg: 'bg-orange-500/10' },
-              ].map((tool, i) => (
-                <button key={i} className="flex flex-col items-center justify-center gap-3 p-4 rounded-xl border border-border-light dark:border-border-dark hover:border-primary dark:hover:border-primary hover:bg-background-light dark:hover:bg-background-dark transition-all group">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${tool.bg} ${tool.color} group-hover:scale-110 transition-transform`}>
-                    <tool.icon className="w-5 h-5" />
-                  </div>
-                  <span className="text-sm font-medium">{tool.label}</span>
-                </button>
-              ))}
-            </div>
-          </section>
-          
-          {/* System Alerts */}
-          <section className="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-2xl p-6 shadow-sm">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-bold">System Alerts</h2>
-              <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">2 New</span>
-            </div>
-            <div className="space-y-4">
-              <div className="flex gap-3 items-start p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
-                <div className="w-2 h-2 mt-2 rounded-full bg-red-500 shrink-0"></div>
-                <div>
-                  <h4 className="font-semibold text-sm text-red-600 dark:text-red-400">Payment Gateway Error</h4>
-                  <p className="text-xs text-red-600/80 dark:text-red-400/80 mt-1">Stripe connection timeout. 3 payments failed in the last hour.</p>
-                  <button className="mt-2 text-xs font-medium text-red-600 dark:text-red-400 hover:underline">Resolve Issue</button>
-                </div>
-              </div>
-              <div className="flex gap-3 items-start p-4 bg-orange-500/10 border border-orange-500/20 rounded-xl">
-                <div className="w-2 h-2 mt-2 rounded-full bg-orange-500 shrink-0"></div>
-                <div>
-                  <h4 className="font-semibold text-sm text-orange-600 dark:text-orange-400">High Occupancy Warning</h4>
-                  <p className="text-xs text-orange-600/80 dark:text-orange-400/80 mt-1">Downtown Hub is at 95% capacity for tomorrow.</p>
-                  <button className="mt-2 text-xs font-medium text-orange-600 dark:text-orange-400 hover:underline">View Schedule</button>
-                </div>
-              </div>
+              <button onClick={() => setActiveModal('addUser')} className="flex flex-col items-center justify-center gap-3 p-4 rounded-xl border border-border-light dark:border-border-dark hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all group"><div className="w-10 h-10 rounded-lg flex items-center justify-center bg-blue-500/10 text-blue-500 group-hover:scale-110 transition-transform"><UserPlus className="w-5 h-5" /></div><span className="text-sm font-medium">Add User</span></button>
+              <button onClick={() => setActiveModal('newBooking')} className="flex flex-col items-center justify-center gap-3 p-4 rounded-xl border border-border-light dark:border-border-dark hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-all group"><div className="w-10 h-10 rounded-lg flex items-center justify-center bg-purple-500/10 text-purple-500 group-hover:scale-110 transition-transform"><CalendarPlus className="w-5 h-5" /></div><span className="text-sm font-medium">New Booking</span></button>
+              <button onClick={() => setActiveModal('invoice')} className="flex flex-col items-center justify-center gap-3 p-4 rounded-xl border border-border-light dark:border-border-dark hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/10 transition-all group"><div className="w-10 h-10 rounded-lg flex items-center justify-center bg-emerald-500/10 text-emerald-500 group-hover:scale-110 transition-transform"><Receipt className="w-5 h-5" /></div><span className="text-sm font-medium">Create Invoice</span></button>
+              <button onClick={handleGenerateReport} className="flex flex-col items-center justify-center gap-3 p-4 rounded-xl border border-border-light dark:border-border-dark hover:border-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/10 transition-all group"><div className="w-10 h-10 rounded-lg flex items-center justify-center bg-orange-500/10 text-orange-500 group-hover:scale-110 transition-transform"><BarChartIcon className="w-5 h-5" /></div><span className="text-sm font-medium">Generate Report</span></button>
             </div>
           </section>
         </div>
