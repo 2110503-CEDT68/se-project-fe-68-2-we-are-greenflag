@@ -271,7 +271,7 @@ export default function Admin() {
       {/* ======================= MODALS ======================= */}
       {/* Export Modal */}
       {isExportModalOpen && (
-        <div className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-2xl bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark shadow-2xl p-6">
             <div className="mb-5">
               <h2 className="text-xl font-bold">Choose Export Format</h2>
@@ -501,7 +501,7 @@ export default function Admin() {
             <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">Generated from live dashboard data</span>
           </div>
 
-          <section className="bg-white dark:bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+          <section className="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-2xl p-6 shadow-sm">
             <div className="flex justify-between items-start mb-6">
               <div>
                 <h2 className="text-lg font-bold">Revenue Overview</h2>
