@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { CSVLink } from 'react-csv';
+import generatePDF from 'react-to-pdf';
 import { 
   Users, Calendar, CreditCard, Activity, ArrowUpRight, ArrowDownRight, 
   MoreVertical, Download, Filter, Banknote, CalendarCheck, Building, 
@@ -35,6 +37,11 @@ export default function Admin() {
   // State สำหรับ Filter และ Sort
   const [filterSpace, setFilterSpace] = useState('All');
   const [sortBy, setSortBy] = useState('date-desc'); 
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [selectedExportType, setSelectedExportType] = useState<'csv' | 'pdf'>('csv');
+
+  const csvLinkRef = React.useRef<any>(null);
+  const pdfReportRef = React.useRef<HTMLDivElement>(null);
 
   const API_URL = 'https://backend-august-pen-gay.onrender.com/api/v1';
 
@@ -176,6 +183,47 @@ export default function Admin() {
     document.body.appendChild(link); link.click(); document.body.removeChild(link);
   };
 
+  const csvHeaders = [
+    { label: 'Customer', key: 'user' },
+    { label: 'Email', key: 'email' },
+    { label: 'Amount', key: 'amount' },
+    { label: 'Date', key: 'time' },
+    { label: 'Status', key: 'status' },
+    { label: 'Coworking Space', key: 'coworkingName' },
+    { label: 'Desk', key: 'desk' },
+    { label: 'Start Time', key: 'startTime' },
+    { label: 'End Time', key: 'endTime' },
+  ];
+
+  const csvData = filteredTransactions.map((item) => ({
+    user: item.user,
+    email: item.email,
+    amount: item.amount,
+    time: item.time,
+    status: item.status,
+    coworkingName: item.coworkingName || 'N/A',
+    desk: item.desk || 'N/A',
+    startTime: item.startTime || 'N/A',
+    endTime: item.endTime || 'N/A',
+  }));
+  const pdfRows = filteredTransactions.slice(0, 1000);
+
+  const handleConfirmExport = async () => {
+    if (selectedExportType === 'csv') {
+      csvLinkRef.current?.link?.click();
+      setIsExportModalOpen(false);
+      return;
+    }
+
+    if (pdfReportRef.current) {
+      await generatePDF(pdfReportRef, {
+        filename: `dashboard-report-${selectedYear}.pdf`,
+        page: { margin: 16, format: 'a4', orientation: 'portrait' },
+      });
+    }
+    setIsExportModalOpen(false);
+  };
+
   const statCards = [
     { title: 'Total Revenue', value: `฿${stats.revenue.toLocaleString(undefined, {minimumFractionDigits: 2})}`, change: '+12.5%', icon: Banknote, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
     { title: 'Active Members', value: stats.members.toLocaleString(), change: '+5.2%', icon: Users, color: 'text-blue-500', bg: 'bg-blue-500/10' },
@@ -184,25 +232,24 @@ export default function Admin() {
   ];
 
   if (loading) return <div className="flex justify-center items-center h-[70vh]"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
-
   const currentMonthIndex = new Date().getMonth();
   const isCurrentYear = new Date().getFullYear().toString() === selectedYear;
 
   // 🟢 Component Table Row ที่แก้บั๊กเมนูซ้อนแล้ว (ใช้ menuKey ในการแยกแยะ)
   const TransactionRow = ({ row, menuKey }: { row: any, menuKey: string }) => (
-    <tr className="hover:bg-background-light dark:hover:bg-background-dark transition-colors relative">
-      <td className="px-6 py-4"><div className="flex items-center gap-3"><img src={`https://picsum.photos/seed/${row.user}/40/40`} alt={row.user} className="w-10 h-10 rounded-full" referrerPolicy="no-referrer" /><div><div className="font-medium text-text-light dark:text-text-dark">{row.user}</div><div className="text-xs text-text-muted-light dark:text-text-muted-dark">{row.email}</div></div></div></td>
-      <td className="px-6 py-4 font-medium text-text-light dark:text-text-dark">{row.amount}</td>
-      <td className="px-6 py-4 text-text-muted-light dark:text-text-muted-dark">
+    <tr className="hover:bg-gray-800 dark:hover:bg-gray-800 transition-colors relative">
+      <td className="px-6 py-4"><div className="flex items-center gap-3"><img src={`https://picsum.photos/seed/${row.user}/40/40`} alt={row.user} className="w-10 h-10 rounded-full" referrerPolicy="no-referrer" /><div><div className="font-medium text-white">{row.user}</div><div className="text-xs text-gray-400">{row.email}</div></div></div></td>
+      <td className="px-6 py-4 font-medium text-white">{row.amount}</td>
+      <td className="px-6 py-4 text-gray-400">
         {row.time} <br/> <span className="text-xs opacity-70">{row.coworkingName}</span>
       </td>
       <td className="px-6 py-4"><span className={`px-2.5 py-1 rounded-full text-xs font-medium ${row.statusColor}`}>{row.status}</span></td>
       <td className="px-6 py-4 text-right relative">
-        <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === menuKey ? null : menuKey); }} className="p-2 text-text-muted-light hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"><MoreVertical className="w-4 h-4" /></button>
+        <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === menuKey ? null : menuKey); }} className="p-2 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"><MoreVertical className="w-4 h-4" /></button>
         {openMenuId === menuKey && (
-          <div className="absolute right-12 top-1/2 -translate-y-1/2 w-32 bg-white dark:bg-[#1f1f22] border border-gray-200 dark:border-zinc-700 shadow-xl rounded-xl z-50 overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            <button onClick={() => handleOpenEdit(row)} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-zinc-800 flex items-center gap-2"><Edit className="w-4 h-4" /> Edit</button>
-            <button onClick={() => handleDeleteBooking(row.id)} className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"><Trash2 className="w-4 h-4" /> Delete</button>
+          <div className="absolute right-12 top-1/2 -translate-y-1/2 w-32 bg-gray-800 dark:bg-gray-800 border border-gray-600 dark:border-gray-600 shadow-xl rounded-xl z-50 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => handleOpenEdit(row)} className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 dark:hover:bg-gray-700 flex items-center gap-2"><Edit className="w-4 h-4" /> Edit</button>
+            <button onClick={() => handleDeleteBooking(row.id)} className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-900/20 dark:hover:bg-red-900/20 flex items-center gap-2"><Trash2 className="w-4 h-4" /> Delete</button>
           </div>
         )}
       </td>
@@ -211,11 +258,81 @@ export default function Admin() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 relative" onClick={() => { setOpenMenuId(null); }}>
+      <CSVLink
+        ref={csvLinkRef}
+        data={csvData}
+        headers={csvHeaders}
+        filename={`dashboard-report-${selectedYear}.csv`}
+        className="hidden"
+        target="_blank"
+      />
 
       {/* ======================= MODALS ======================= */}
+      {/* Export Modal */}
+      {isExportModalOpen && (
+         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark shadow-2xl p-6">
+            <div className="mb-5">
+              <h2 className="text-xl font-bold">Choose Export Format</h2>
+              <p className="text-sm text-text-muted-light dark:text-text-muted-dark mt-1">
+                Select a format to download the current dashboard data.
+              </p>
+            </div>
+            <div className="space-y-3 mb-8">
+              <label className="flex items-start gap-3 p-4 rounded-xl border border-border-light dark:border-border-dark hover:border-primary/60 hover:bg-primary/5 cursor-pointer transition-colors">
+                <input
+                  type="radio"
+                  name="exportType"
+                  value="csv"
+                  checked={selectedExportType === 'csv'}
+                  onChange={() => setSelectedExportType('csv')}
+                  className="w-4 h-4 mt-0.5 text-primary"
+                />
+                <div>
+                  <p className="text-sm font-semibold">CSV Data File (.csv)</p>
+                  <p className="text-xs text-text-muted-light dark:text-text-muted-dark mt-0.5">
+                    Best for spreadsheet analysis and bulk data processing.
+                  </p>
+                </div>
+              </label>
+              <label className="flex items-start gap-3 p-4 rounded-xl border border-border-light dark:border-border-dark hover:border-primary/60 hover:bg-primary/5 cursor-pointer transition-colors">
+                <input
+                  type="radio"
+                  name="exportType"
+                  value="pdf"
+                  checked={selectedExportType === 'pdf'}
+                  onChange={() => setSelectedExportType('pdf')}
+                  className="w-4 h-4 mt-0.5 text-primary"
+                />
+                <div>
+                  <p className="text-sm font-semibold">Summary Report PDF (.pdf)</p>
+                  <p className="text-xs text-text-muted-light dark:text-text-muted-dark mt-0.5">
+                    Includes revenue chart and transaction table in one report.
+                  </p>
+                </div>
+              </label>
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setIsExportModalOpen(false)}
+                className="px-4 py-2.5 rounded-lg border border-border-light dark:border-border-dark text-text-muted-light dark:text-text-muted-dark font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmExport}
+                className="px-4 py-2.5 rounded-lg bg-primary text-white font-semibold hover:bg-primary-hover transition-colors"
+              >
+                Confirm Download
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Edit Booking */}
       {activeModal === 'editBooking' && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setActiveModal(null)}>
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setActiveModal(null)}>
           <div className="w-full max-w-lg rounded-2xl bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark shadow-2xl p-6" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-6"><h2 className="text-xl font-bold">Edit Booking</h2><button onClick={() => setActiveModal(null)} className="p-2 hover:bg-background-light dark:hover:bg-background-dark rounded-lg"><X className="w-5 h-5" /></button></div>
             <form onSubmit={handleUpdateBooking} className="space-y-4">
@@ -350,8 +467,8 @@ export default function Admin() {
             </select>
           </div>
 
-          <button onClick={handleGenerateReport} className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary-hover transition-colors">
-            <Download className="w-4 h-4" /> Export CSV
+          <button onClick={() => setIsExportModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary-hover transition-colors shadow-sm">
+            <Download className="w-4 h-4" /> Export Data
           </button>
         </div>
       </div>
@@ -367,21 +484,29 @@ export default function Admin() {
                 </div>
               </div>
               <h3 className="text-text-muted-light dark:text-text-muted-dark font-medium text-sm mb-1">{stat.title}</h3>
-              <p className="text-3xl font-bold tracking-tight">{stat.value}</p>
+              <p className="text-3xl font-bold tracking-tight text-text-light dark:text-text-dark">{stat.value}</p>
             </div>
           ))}
         </div>
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-8">
+        <div className="lg:col-span-2 space-y-8 bg-surface-light dark:bg-surface-dark rounded-2xl p-6 border border-border-light dark:border-border-dark shadow-sm">
+          <div className="flex items-start justify-between gap-3 border-b border-border-light dark:border-border-dark pb-4">
+            <div>
+              <h2 className="text-2xl font-bold text-text-light dark:text-text-dark">WorkSpace Dashboard Report</h2>
+              <p className="text-sm text-text-muted-light dark:text-text-muted-dark">Summary for year {selectedYear}</p>
+            </div>
+            <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-surface-light dark:bg-surface-dark text-text-muted-light dark:text-text-muted-dark border border-border-light dark:border-border-dark">Generated from live dashboard data</span>
+          </div>
+
           <section className="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-2xl p-6 shadow-sm">
             <div className="flex justify-between items-start mb-6">
               <div>
-                <h2 className="text-lg font-bold">Revenue Overview</h2>
+                <h2 className="text-lg font-bold text-text-light dark:text-text-dark">Revenue Overview</h2>
                 <p className="text-sm text-text-muted-light dark:text-text-muted-dark mt-1">Monthly revenue for the selected year</p>
               </div>
-              <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} className="bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-lg px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/50">
+              <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} className="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-lg px-4 py-2 text-sm font-medium text-text-light dark:text-text-dark focus:outline-none focus:ring-2 focus:ring-primary/50">
                 <option value="2026">2026</option>
                 <option value="2025">2025</option>
                 <option value="2024">2024</option>
@@ -389,25 +514,21 @@ export default function Admin() {
             </div>
             <div className="h-[300px] w-full mt-4">
               <ResponsiveContainer width="100%" height="100%">
-                {/* 🟢 1. แก้ margin-left ให้เป็น 0 (จากเดิม -20) จะได้ไม่ตกขอบ */}
                 <BarChart data={monthlyRevenueData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                  
-                  {/* 🟢 2. เพิ่ม interval={0} เข้าไปใน XAxis เพื่อบังคับให้แสดงทุกเดือน */}
                   <XAxis 
                     dataKey="name" 
                     axisLine={false} 
                     tickLine={false} 
-                    tick={{ fontSize: 12, fill: '#888888' }} 
+                    tick={{ fontSize: 12, fill: '#d1d5db' }} 
                     dy={10} 
                     interval={0} 
                   />
-                  
                   <YAxis hide={true} />
                   <Tooltip cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }} content={({ active, payload }) => {
                       if (active && payload && payload.length) {
                         return (
-                          <div className="bg-white dark:bg-[#1f1f22] border border-gray-200 dark:border-zinc-800 px-3 py-2 rounded-lg shadow-xl">
-                            <p className="text-sm font-bold text-gray-900 dark:text-white">฿{payload[0].value?.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
+                          <div className="bg-gray-800 dark:bg-gray-800 border border-gray-600 px-3 py-2 rounded-lg shadow-xl">
+                            <p className="text-sm font-bold text-white">฿{payload[0].value?.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
                           </div>
                         );
                       }
@@ -428,27 +549,7 @@ export default function Admin() {
             </div>
           </section>
 
-          <section className="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-2xl overflow-hidden shadow-sm">
-            <div className="p-6 border-b border-border-light dark:border-border-dark flex justify-between items-center">
-              <div><h2 className="text-lg font-bold">Recent Transactions</h2><p className="text-sm text-text-muted-light dark:text-text-muted-dark">Latest payments and bookings</p></div>
-              <button onClick={() => setIsViewAllOpen(true)} className="text-sm font-medium text-primary hover:text-primary-hover transition-colors">View All</button>
-            </div>
-            <div className="overflow-x-auto pb-20"> 
-              <table className="w-full text-left text-sm">
-                <thead className="bg-background-light dark:bg-background-dark text-text-muted-light dark:text-text-muted-dark">
-                  <tr><th className="px-6 py-4 font-medium">Customer</th><th className="px-6 py-4 font-medium">Amount</th><th className="px-6 py-4 font-medium">Date</th><th className="px-6 py-4 font-medium">Status</th><th className="px-6 py-4 font-medium text-right"></th></tr>
-                </thead>
-                <tbody className="divide-y divide-border-light dark:divide-border-dark">
-                  {/* 🟢 ส่ง menuKey ที่ไม่ซ้ำกันไปให้ Component แถวตาราง */}
-                  {displayRecentTransactions.length > 0 ? displayRecentTransactions.map((row, i) => (
-                    <TransactionRow key={`recent-${i}`} row={row} menuKey={`recent-${i}`} />
-                  )) : (
-                    <tr><td colSpan={5} className="px-6 py-8 text-center text-text-muted-light dark:text-text-muted-dark">No recent transactions found.</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
+
         </div>
 
         <div className="space-y-8">
@@ -461,6 +562,79 @@ export default function Admin() {
               <button onClick={handleGenerateReport} className="flex flex-col items-center justify-center gap-3 p-4 rounded-xl border border-border-light dark:border-border-dark hover:border-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/10 transition-all group"><div className="w-10 h-10 rounded-lg flex items-center justify-center bg-orange-500/10 text-orange-500 group-hover:scale-110 transition-transform"><BarChartIcon className="w-5 h-5" /></div><span className="text-sm font-medium">Generate Report</span></button>
             </div>
           </section>
+        </div>
+      </div>
+
+      {/* PDF-only container: keep styles simple to avoid oklch parsing issues */}
+      <div
+        style={{
+          position: 'fixed',
+          left: '-200vw',
+          top: 0,
+          width: '1024px',
+          backgroundColor: '#ffffff',
+          color: '#0f172a',
+          padding: '24px',
+          zIndex: -1,
+        }}
+      >
+        <div ref={pdfReportRef}>
+          <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '12px', marginBottom: '16px' }}>
+            <h2 style={{ fontSize: '24px', fontWeight: 700, margin: 0 }}>WorkSpace Dashboard Report</h2>
+            <p style={{ margin: '6px 0 0 0', color: '#475569', fontSize: '14px' }}>Summary for year {selectedYear}</p>
+          </div>
+
+          <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
+            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>Revenue Overview</h3>
+            <p style={{ margin: '4px 0 12px 0', color: '#475569', fontSize: '13px' }}>Monthly revenue for the selected year</p>
+            <div style={{ height: '280px', width: '100%' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={monthlyRevenueData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} interval={0} />
+                  <YAxis hide={true} />
+                  <Bar dataKey="total" radius={[4, 4, 0, 0]}>
+                    {monthlyRevenueData.map((entry, index) => (
+                      <Cell key={`pdf-cell-${index}`} fill={(isCurrentYear && index === currentMonthIndex) ? '#ea580c' : '#7c2d12'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden' }}>
+            <div style={{ padding: '14px 16px', borderBottom: '1px solid #e2e8f0' }}>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>Recent Transactions</h3>
+            </div>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+              <thead style={{ backgroundColor: '#f8fafc' }}>
+                <tr>
+                  <th style={{ textAlign: 'left', padding: '10px 12px', borderBottom: '1px solid #e2e8f0' }}>Customer</th>
+                  <th style={{ textAlign: 'left', padding: '10px 12px', borderBottom: '1px solid #e2e8f0' }}>Email</th>
+                  <th style={{ textAlign: 'left', padding: '10px 12px', borderBottom: '1px solid #e2e8f0' }}>Amount</th>
+                  <th style={{ textAlign: 'left', padding: '10px 12px', borderBottom: '1px solid #e2e8f0' }}>Date</th>
+                  <th style={{ textAlign: 'left', padding: '10px 12px', borderBottom: '1px solid #e2e8f0' }}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pdfRows.length > 0 ? pdfRows.map((row, i) => (
+                  <tr key={`pdf-row-${i}`}>
+                    <td style={{ padding: '9px 12px', borderBottom: '1px solid #f1f5f9' }}>{row.user}</td>
+                    <td style={{ padding: '9px 12px', borderBottom: '1px solid #f1f5f9' }}>{row.email}</td>
+                    <td style={{ padding: '9px 12px', borderBottom: '1px solid #f1f5f9' }}>{row.amount}</td>
+                    <td style={{ padding: '9px 12px', borderBottom: '1px solid #f1f5f9' }}>{row.time}</td>
+                    <td style={{ padding: '9px 12px', borderBottom: '1px solid #f1f5f9' }}>{row.status}</td>
+                  </tr>
+                )) : (
+                  <tr>
+                    <td colSpan={5} style={{ padding: '14px', textAlign: 'center', color: '#64748b' }}>
+                      No transactions found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
