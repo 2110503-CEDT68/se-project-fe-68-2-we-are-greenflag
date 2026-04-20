@@ -549,26 +549,7 @@ export default function Admin() {
             </div>
           </section>
 
-          <section className="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-2xl overflow-hidden shadow-sm">
-            <div className="p-6 border-b border-border-light dark:border-border-dark flex justify-between items-center">
-              <div><h2 className="text-lg font-bold text-text-light dark:text-text-dark">Recent Transactions</h2><p className="text-sm text-text-muted-light dark:text-text-muted-dark">Latest payments and bookings</p></div>
-              <button onClick={() => setIsViewAllOpen(true)} className="text-sm font-medium text-primary hover:text-primary-hover transition-colors">View All</button>
-            </div>
-            <div className="overflow-x-auto pb-20"> 
-              <table className="w-full text-left text-sm">
-                <thead className="bg-surface-light dark:bg-surface-dark text-text-muted-light dark:text-text-muted-dark">
-                  <tr><th className="px-6 py-4 font-medium">Customer</th><th className="px-6 py-4 font-medium">Amount</th><th className="px-6 py-4 font-medium">Date</th><th className="px-6 py-4 font-medium">Status</th><th className="px-6 py-4 font-medium text-right"></th></tr>
-                </thead>
-                <tbody className="divide-y divide-border-light dark:divide-border-dark">
-                  {displayRecentTransactions.length > 0 ? displayRecentTransactions.map((row, i) => (
-                    <TransactionRow key={`recent-${i}`} row={row} menuKey={`recent-${i}`} />
-                  )) : (
-                    <tr><td colSpan={5} className="px-6 py-8 text-center text-gray-400">No recent transactions found.</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
+
         </div>
 
         <div className="space-y-8">
