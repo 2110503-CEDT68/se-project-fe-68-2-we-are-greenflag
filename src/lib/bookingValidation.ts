@@ -54,13 +54,13 @@ export function validateBookingSchedule(
   const start = localDateTimeFromYmdHm(dateYmd, startTime);
   const end = localDateTimeFromYmdHm(dateYmd, endTime);
   if (!start || !end) {
-    return { ok: false, message: 'วันที่หรือเวลาไม่ถูกต้อง' };
+    return { ok: false, message: 'Invalid date or time' };
   }
   if (start >= end) {
-    return { ok: false, message: 'เวลาสิ้นสุดต้องมากกว่าเวลาเริ่มต้น' };
+    return { ok: false, message: 'End time must be after start time' };
   }
   if (start < now) {
-    return { ok: false, message: 'ไม่สามารถจองวันหรือช่วงเวลาที่ผ่านมาแล้วได้' };
+    return { ok: false, message: 'Cannot book past dates or times' };
   }
   return { ok: true };
 }

@@ -1,9 +1,9 @@
 import axios from 'axios';
 
 const api = axios.create({
-  // เปลี่ยนเป็น URL ของ Backend ตอน Deploy จริง
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1',
-  withCredentials: true, // สำคัญมาก! ทำให้ส่ง Cookie/Token ไปหา Backend ได้
+  // Change to Backend URL for production deployment
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://backend-august-pen-gay.onrender.com/api/v1',
+  withCredentials: true, // Important! Allows sending Cookie/Token to Backend
 });
 
 export default api;

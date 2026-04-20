@@ -31,11 +31,11 @@ export default function SignUp() {
 
     // basic validation
     if (!/^[0-9]{9,10}$/.test(data.telephone)) {
-      setError('เบอร์โทรศัพท์ต้องเป็นตัวเลข 9-10 หลักเท่านั้น');
+      setError('Phone number must be 9-10 digits only');
       return;
     }
     if (data.password.length < 6) {
-      setError('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');
+      setError('Password must be at least 6 characters');
       return;
     }
 
@@ -67,7 +67,7 @@ export default function SignUp() {
 
     } catch (err: any) {
       console.error('Signup error:', err);
-      setError(err.response?.data?.message || err.response?.data?.msg || 'ไม่สามารถสมัครสมาชิกได้ อีเมลนี้อาจมีผู้ใช้งานแล้ว');
+      setError(err.response?.data?.message || err.response?.data?.msg || 'Unable to register, this email may already be in use');
     } finally {
       setIsLoading(false);
     }
@@ -79,10 +79,10 @@ export default function SignUp() {
       {/* --- 1. Privacy Modal --- */}
       {showPrivacyModal && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 sm:p-6 backdrop-blur-sm">
-          {/* Container หลัก: เพิ่มขอบสีส้มและมุมโค้งมน */}
+          {/* Main Container: orange border and rounded corners */}
           <div className="bg-white border-[12px] md:border-[3px] border-[#f97316] rounded-[32px] shadow-2xl max-w-2xl w-full flex flex-col transform transition-all duration-300 scale-100 max-h-[90vh]">
 
-            {/* Modal Header: พื้นหลังสีขาว ตัวอักษรสีดำ ตัวหนา */}
+            {/* Modal Header: white background, black text, bold */}
             <div className="bg-white p-6 text-center border-b border-gray-100 rounded-t-[20px]">
               <h2 className="text-2xl md:text-3xl font-bold text-black tracking-tight">Privacy Policy</h2>
             </div>
@@ -119,7 +119,7 @@ export default function SignUp() {
               </p>
             </div>
 
-            {/* Modal Footer (Buttons): ปรับเลย์เอาต์ปุ่มและสีสัน */}
+            {/* Modal Footer (Buttons): adjust button layout and colors */}
             <div className="bg-white px-6 md:px-8 py-6 flex flex-col sm:flex-row justify-between gap-4 border-t border-gray-100 rounded-b-[20px]">
               <button
                 onClick={() => setShowPrivacyModal(false)}

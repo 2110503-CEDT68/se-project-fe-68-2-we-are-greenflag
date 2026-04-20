@@ -12,15 +12,15 @@ export default function Login() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // 🌟 1. สร้างตัวแปร URL โดยดึงจาก Environment (ถ้าไม่มีให้ใช้ลิงก์ Render แทน)
-  // อย่าลืมเปลี่ยนลิงก์ข้างล่างนี้เป็นลิงก์ Render จริงๆ ของคุณนะครับ!
+  // Create URL variable from Environment (if not available, use Render link instead)
+  // Don't forget to change the link below to your actual Render link!
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://backend-august-pen-gay.onrender.com/api/v1';
 
   useEffect(() => {
     localStorage.removeItem('token');
     localStorage.removeItem('userRole');
     
-    // 🌟 2. เปลี่ยน localhost เป็น API_URL
+    // Change localhost to API_URL
     axios.get(`${API_URL}/auth/logout`, { withCredentials: true })
       .catch(() => {});
   }, []);
@@ -35,7 +35,7 @@ export default function Login() {
     const password = formData.get('password')?.toString() || '';
 
     try {
-      // 🌟 3. เปลี่ยน localhost เป็น API_URL
+      // Change localhost to API_URL
       const loginRes = await axios.post(`${API_URL}/auth/login`, {
         email,
         password
@@ -48,7 +48,7 @@ export default function Login() {
         localStorage.setItem('token', token);
       }
 
-      // 🌟 4. เปลี่ยน localhost เป็น API_URL
+      // Change localhost to API_URL
       const meRes = await axios.get(`${API_URL}/auth/me`, {
         headers: {
           Authorization: `Bearer ${token}` 
@@ -70,13 +70,11 @@ export default function Login() {
 
     } catch (err: any) {
       console.error('Login error:', err);
-      setError(err.response?.data?.msg || err.response?.data?.message || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง');
+      setError(err.response?.data?.msg || err.response?.data?.message || 'Invalid email or password');
     } finally {
       setIsLoading(false);
     }
   };
-
-  // ... (ส่วน return UI ด้านล่างเหมือนเดิมทุกประการครับ) ...
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-background-light dark:bg-background-dark">
@@ -91,7 +89,7 @@ export default function Login() {
           </p>
         </div>
         
-        {/* ✅ กล่องแสดงข้อความ Error (ถ้ามี) */}
+        {/* Error message box (if any) */}
         {error && (
           <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-xl text-sm text-center">
             {error}
@@ -171,7 +169,7 @@ export default function Login() {
           </div>
         </form>
 
-        {/* ... (ส่วนโค้ดปุ่ม Google/Github ด้านล่างยังคงเหมือนเดิม ไม่ต้องแก้ครับ) ... */}
+        {/* ... (Google/Github button code below remains the same, no need to change) ... */}
         
         <p className="mt-8 text-center text-sm text-text-muted-light dark:text-text-muted-dark">
           Don't have an account?{' '}

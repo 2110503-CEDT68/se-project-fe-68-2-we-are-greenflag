@@ -1,4 +1,4 @@
-/** อนุญาตตัวเลขและเครื่องหมายคั่นเบอร์ทั่วไป */
+/** Allow numbers and common phone number separators */
 const ALLOWED_INPUT = /^[0-9\s\-().]+$/;
 
 export type ThaiTelephoneResult =
@@ -6,30 +6,30 @@ export type ThaiTelephoneResult =
   | { ok: false; message: string };
 
 /**
- * ตรวจเบอร์โทรในประเทศไทย: เป็นตัวเลข, ขึ้นต้นด้วย 0, ความยาว 9 หรือ 10 หลัก (นับรวม 0 นำหน้า)
+ * Validate Thai phone number: must be digits, start with 0, length 9 or 10 (including leading 0)
  */
 export function validateThaiTelephone(raw: string): ThaiTelephoneResult {
   const trimmed = raw.trim();
   if (!trimmed) {
-    return { ok: false, message: 'กรุณากรอกเบอร์โทรศัพท์' };
+    return { ok: false, message: 'Please enter phone number' };
   }
   if (!ALLOWED_INPUT.test(trimmed)) {
     return {
       ok: false,
-      message: 'เบอร์โทรศัพท์ต้องเป็นตัวเลขเท่านั้น (ใส่ - หรือช่องว่างคั่นได้)',
+      message: 'Phone number must be numbers only (hyphens and spaces allowed)',
     };
   }
   const digits = trimmed.replace(/\D/g, '');
   if (!digits.startsWith('0')) {
     return {
       ok: false,
-      message: 'เบอร์โทรศัพท์ในประเทศต้องขึ้นต้นด้วย 0 (เช่น 08xxxxxxxx หรือ 02-xxx-xxxx)',
+      message: 'Phone number must start with 0 (e.g., 08xxxxxxxx or 02-xxx-xxxx)',
     };
   }
   if (digits.length !== 9 && digits.length !== 10) {
     return {
       ok: false,
-      message: 'เบอร์โทรศัพท์ไทยต้องมีความยาว 9 หรือ 10 หลัก นับรวมเลข 0 นำหน้า',
+      message: 'Thai phone number must be 9 or 10 digits including leading 0',
     };
   }
   return { ok: true, normalized: digits };

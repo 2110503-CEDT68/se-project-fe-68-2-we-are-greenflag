@@ -101,16 +101,16 @@ export default function Dashboard() {
         setIsEditModalOpen(false);
         setEditingBooking(null);
         fetchBookings(); // โหลดข้อมูลใหม่หลังจากแก้เสร็จ
-        alert('อัปเดตการจองสำเร็จ!');
+        alert('Booking updated successfully!');
       } catch (err) {
         console.error(err);
-        alert('แก้ไขไม่สำเร็จ โปรดตรวจสอบข้อมูล');
+        alert('Update failed, please check your data');
       }
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('คุณแน่ใจใช่ไหมที่จะยกเลิกการจองนี้?')) return;
+    if (!confirm('Are you sure you want to cancel this booking?')) return;
     try {
       const token = localStorage.getItem('token');
       // 🌟 เปลี่ยน localhost เป็น API_URL ใน DELETE Request
@@ -121,7 +121,7 @@ export default function Dashboard() {
       setBookings((prevBookings) => prevBookings.filter((booking) => booking.id !== id));
       setOpenMenuId(null);
     } catch (err) {
-      alert('ไม่สามารถลบการจองได้');
+      alert('Cannot delete booking');
     }
   };
 
@@ -330,7 +330,7 @@ export default function Dashboard() {
               </button>
             </div>
             
-            <div className="w-full h-[1px] bg-gray-100 dark:bg-border-dark mb-4"></div>
+            <div className="w-full h-px bg-gray-100 dark:bg-border-dark mt-4"></div>
 
             {/* ฟอร์มแก้ไข */}
             <div className="px-6 pb-6 space-y-5">
@@ -396,7 +396,7 @@ export default function Dashboard() {
 
             </div>
 
-            <div className="w-full h-[1px] bg-gray-100 dark:bg-border-dark"></div>
+            <div className="w-full h-px bg-gray-100 dark:bg-border-dark"></div>
 
             {/* Footer Buttons */}
             <div className="p-6 flex justify-end gap-3">

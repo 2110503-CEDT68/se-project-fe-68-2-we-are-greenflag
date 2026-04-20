@@ -36,7 +36,7 @@ function BookContent() {
 
   const handleBooking = async () => {
     if (!spaceId) {
-      setError('ไม่พบข้อมูลสถานที่ กรุณากลับไปเลือกสถานที่จากหน้า Spaces ใหม่');
+      setError('Space not found. Please go back and select a space from the Spaces page.');
       return;
     }
 
@@ -71,7 +71,7 @@ function BookContent() {
 
     } catch (err: any) {
       console.error('Booking error:', err);
-      setError(err.response?.data?.message || err.response?.data?.msg || 'เกิดข้อผิดพลาดในการจอง');
+      setError(err.response?.data?.message || err.response?.data?.msg || 'Booking error occurred');
     } finally {
       setIsBooking(false);
     }

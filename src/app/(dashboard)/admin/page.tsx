@@ -11,6 +11,7 @@ import {
   ArrowUpDown 
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import SalesDashboardUI from '@/components/SalesDashboardUI';
 
 export default function Admin() {
   const [stats, setStats] = useState({ revenue: 0, members: 0, bookingsToday: 0, occupancy: 0 });
@@ -58,14 +59,16 @@ export default function Admin() {
          setMonthlyRevenueData(dbStats.monthlyRevenue || []);
       }
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      // Error fetching dashboard data
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    axios.get(`${API_URL}/coworkings`).then(res => setSpaces(res.data.data)).catch(err => console.log(err));
+    axios.get(`${API_URL}/coworkings`).then(res => setSpaces(res.data.data)).catch(err => {
+      // Error fetching coworking spaces
+    });
   }, []);
 
   useEffect(() => { fetchDashboardData(); }, [API_URL, selectedYear]);
@@ -74,11 +77,13 @@ export default function Admin() {
     if (activeModal === 'newBooking' || activeModal === 'editBooking') {
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` }, withCredentials: true };
-      axios.get(`${API_URL}/auth/users`, config).then(res => setUsersList(res.data.data || res.data)).catch(err => console.log(err));
+      axios.get(`${API_URL}/auth/users`, config).then(res => setUsersList(res.data.data || res.data)).catch(err => {
+        // Error fetching users
+      });
     }
   }, [activeModal]);
 
-  // 🟢 ระบบกรองและจัดเรียงข้อมูล
+  // ระบบกรองและจัดเรียงข้อมูล
   const filteredTransactions = allTransactions
     .filter(t => {
       // กรองสาขา
@@ -500,55 +505,8 @@ export default function Admin() {
             <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-surface-light dark:bg-surface-dark text-text-muted-light dark:text-text-muted-dark border border-border-light dark:border-border-dark">Generated from live dashboard data</span>
           </div>
 
-          <section className="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-2xl p-6 shadow-sm">
-            <div className="flex justify-between items-start mb-6">
-              <div>
-                <h2 className="text-lg font-bold text-text-light dark:text-text-dark">Revenue Overview</h2>
-                <p className="text-sm text-text-muted-light dark:text-text-muted-dark mt-1">Monthly revenue for the selected year</p>
-              </div>
-              <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} className="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-lg px-4 py-2 text-sm font-medium text-text-light dark:text-text-dark focus:outline-none focus:ring-2 focus:ring-primary/50">
-                <option value="2026">2026</option>
-                <option value="2025">2025</option>
-                <option value="2024">2024</option>
-              </select>
-            </div>
-            <div className="h-[300px] w-full mt-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={monthlyRevenueData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                  <XAxis 
-                    dataKey="name" 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{ fontSize: 12, fill: '#d1d5db' }} 
-                    dy={10} 
-                    interval={0} 
-                  />
-                  <YAxis hide={true} />
-                  <Tooltip cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }} content={({ active, payload }) => {
-                      if (active && payload && payload.length) {
-                        return (
-                          <div className="bg-gray-800 dark:bg-gray-800 border border-gray-600 px-3 py-2 rounded-lg shadow-xl">
-                            <p className="text-sm font-bold text-white">฿{payload[0].value?.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }}
-                  />
-                  <Bar dataKey="total" radius={[4, 4, 0, 0]}>
-                    {monthlyRevenueData.map((entry, index) => (
-                      <Cell 
-                        key={`cell-${index}`} 
-                        fill={(isCurrentYear && index === currentMonthIndex) ? '#ea580c' : '#7c2d12'} 
-                        className="transition-all duration-300 hover:opacity-80" 
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </section>
-
+          {/* Sales Dashboard UI Filters */}
+          <SalesDashboardUI role="admin" />
 
         </div>
 
@@ -582,24 +540,6 @@ export default function Admin() {
           <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '12px', marginBottom: '16px' }}>
             <h2 style={{ fontSize: '24px', fontWeight: 700, margin: 0 }}>WorkSpace Dashboard Report</h2>
             <p style={{ margin: '6px 0 0 0', color: '#475569', fontSize: '14px' }}>Summary for year {selectedYear}</p>
-          </div>
-
-          <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
-            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>Revenue Overview</h3>
-            <p style={{ margin: '4px 0 12px 0', color: '#475569', fontSize: '13px' }}>Monthly revenue for the selected year</p>
-            <div style={{ height: '280px', width: '100%' }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={monthlyRevenueData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} interval={0} />
-                  <YAxis hide={true} />
-                  <Bar dataKey="total" radius={[4, 4, 0, 0]}>
-                    {monthlyRevenueData.map((entry, index) => (
-                      <Cell key={`pdf-cell-${index}`} fill={(isCurrentYear && index === currentMonthIndex) ? '#ea580c' : '#7c2d12'} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
           </div>
 
           <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden' }}>

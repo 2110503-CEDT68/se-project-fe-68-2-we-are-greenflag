@@ -88,7 +88,7 @@ export default function AdminSpaces() {
       setSpaces(res.data.data);
     } catch (err) {
       console.error('Error fetching spaces:', err);
-      setError('ไม่สามารถดึงข้อมูลสถานที่ได้');
+      setError('Unable to fetch space data');
     } finally {
       setLoading(false);
     }
