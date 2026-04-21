@@ -72,7 +72,7 @@ export default function AdminSpaces() {
 
   const [alert, setAlert] = useState<{ message: string; type: 'success' | 'error' | 'warning'; } | null>(null);
 
-// เปลี่ยนพอร์ต 5000 ให้ตรงกับพอร์ตที่ Backend ในเครื่องคุณรันอยู่นะครับ
+// เปลี่ยนพอร์ต 5000 ให้ตรงกับพอร์ตที่ Backend ในเครื่องคุณรันอยู่นะครับhttp://localhost:5000/api/v1
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://backend-august-pen-gay.onrender.com/api/v1';
 
   useEffect(() => {
@@ -254,12 +254,16 @@ export default function AdminSpaces() {
 
     try {
       if (deleteActionType === 'soft') {
-        await axios.put(`${API_URL}/coworkings/${spaceToProcess._id}`, { isDeleted: true }, {
+        // ✅ เพิ่ม status: 'unavailable' เข้าไปใน Payload
+        await axios.put(`${API_URL}/coworkings/${spaceToProcess._id}`, { 
+          isDeleted: true,
+          status: 'unavailable' 
+        }, {
           headers: { Authorization: `Bearer ${token}` },
           withCredentials: true,
         });
-        // 🟢 เปลี่ยนข้อความตรงนี้
-        setAlert({ message: 'Space Archived Successfully 📦', type: 'warning' });
+        
+        setAlert({ message: 'Space Archived and marked as Unavailable 📦', type: 'warning' });
       } else {
         await axios.delete(`${API_URL}/coworkings/${spaceToProcess._id}`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -281,8 +285,11 @@ export default function AdminSpaces() {
   const handleRestore = async (space: Coworking) => {
     try {
       const token = localStorage.getItem('token');
-      // 🟢 แก้ไข: ส่ง payload แบบปกติตรงๆ { isDeleted: false }
-      await axios.put(`${API_URL}/coworkings/${space._id}`, { isDeleted: false }, {
+      // ✅ เพิ่ม status: 'available' เข้าไปใน Payload
+      await axios.put(`${API_URL}/coworkings/${space._id}`, { 
+        isDeleted: false,
+        status: 'available' 
+      }, {
         headers: { Authorization: `Bearer ${token}` },
         withCredentials: true,
       });

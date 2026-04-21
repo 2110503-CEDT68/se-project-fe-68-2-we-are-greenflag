@@ -43,7 +43,7 @@ export default function Admin() {
 
   const csvLinkRef = React.useRef<any>(null);
   const pdfReportRef = React.useRef<HTMLDivElement>(null);
-
+  //http://localhost:5000/api/v1
   const API_URL = 'https://backend-august-pen-gay.onrender.com/api/v1';
 
   const fetchDashboardData = async () => {
@@ -339,16 +339,31 @@ export default function Admin() {
       {activeModal === 'editBooking' && (
         <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setActiveModal(null)}>
           <div className="w-full max-w-lg rounded-2xl bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark shadow-2xl p-6" onClick={e => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-6"><h2 className="text-xl font-bold">Edit Booking</h2><button onClick={() => setActiveModal(null)} className="p-2 hover:bg-background-light dark:hover:bg-background-dark rounded-lg"><X className="w-5 h-5" /></button></div>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold">Edit Booking</h2>
+              <button onClick={() => setActiveModal(null)} className="p-2 hover:bg-background-light dark:hover:bg-background-dark rounded-lg"><X className="w-5 h-5" /></button>
+            </div>
             <form onSubmit={handleUpdateBooking} className="space-y-4">
-              <div><label className="block text-sm mb-1">Location / Space</label><select required value={editBookingForm.coworkingId} onChange={e => setEditBookingForm({...editBookingForm, coworkingId: e.target.value})} className="w-full p-2.5 rounded-lg border dark:border-zinc-700 dark:bg-zinc-800"><option value="">-- Select a space --</option>{spaces.map(s => <option key={s._id} value={s._id}>{s.name} ({s.type})</option>)}</select></div>
+              <div>
+                <label className="block text-sm mb-1">Location / Space</label>
+                <select required value={editBookingForm.coworkingId} onChange={e => setEditBookingForm({...editBookingForm, coworkingId: e.target.value})} className="w-full p-2.5 rounded-lg border dark:border-zinc-700 dark:bg-zinc-800">
+                  <option value="">-- Select a space --</option>
+                  {/* 🟢 กรองเฉพาะ available และยังไม่ถูกลบ (Edit Booking) */}
+                  {spaces
+                    .filter(s => (!s.status || s.status === 'available') && !s.isDeleted)
+                    .map(s => <option key={s._id} value={s._id}>{s.name}</option>)
+                  }
+                </select>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div><label className="block text-sm mb-1">Desk No.</label><input required value={editBookingForm.desk} onChange={e => setEditBookingForm({...editBookingForm, desk: e.target.value})} className="w-full p-2.5 rounded-lg border dark:border-zinc-700 dark:bg-zinc-800" /></div>
                 <div><label className="block text-sm mb-1">Date</label><input type="date" required value={editBookingForm.date} onChange={e => setEditBookingForm({...editBookingForm, date: e.target.value})} className="w-full p-2.5 rounded-lg border dark:border-zinc-700 dark:bg-zinc-800 scheme-dark"/></div>
                 <div><label className="block text-sm mb-1">Start Time</label><input type="time" required value={editBookingForm.startTime} onChange={e => setEditBookingForm({...editBookingForm, startTime: e.target.value})} className="w-full p-2.5 rounded-lg border dark:border-zinc-700 dark:bg-zinc-800 scheme-dark"/></div>
                 <div><label className="block text-sm mb-1">End Time</label><input type="time" required value={editBookingForm.endTime} onChange={e => setEditBookingForm({...editBookingForm, endTime: e.target.value})} className="w-full p-2.5 rounded-lg border dark:border-zinc-700 dark:bg-zinc-800 scheme-dark"/></div>
               </div>
-              <button type="submit" disabled={isSubmitting} className="w-full py-3 mt-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold flex justify-center items-center gap-2">{isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Save Changes'}</button>
+              <button type="submit" disabled={isSubmitting} className="w-full py-3 mt-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold flex justify-center items-center gap-2">
+                {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Save Changes'}
+              </button>
             </form>
           </div>
         </div>
@@ -374,17 +389,38 @@ export default function Admin() {
       {activeModal === 'newBooking' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setActiveModal(null)}>
           <div className="w-full max-w-lg rounded-2xl bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark shadow-2xl p-6" onClick={e => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-6"><h2 className="text-xl font-bold">New Booking</h2><button onClick={() => setActiveModal(null)} className="p-2"><X className="w-5 h-5" /></button></div>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold">New Booking</h2>
+              <button onClick={() => setActiveModal(null)} className="p-2"><X className="w-5 h-5" /></button>
+            </div>
             <form onSubmit={handleNewBooking} className="space-y-4">
-              <div><label className="block text-sm mb-1">Customer</label><select required value={bookingForm.user} onChange={e => setBookingForm({...bookingForm, user: e.target.value})} className="w-full p-2.5 rounded-lg border dark:border-zinc-700 dark:bg-zinc-800"><option value="">-- Select a customer --</option>{usersList.map((u: any) => (<option key={u._id} value={u._id}>{u.name}</option>))}</select></div>
-              <div><label className="block text-sm mb-1">Location / Space</label><select required value={bookingForm.coworkingId} onChange={e => setBookingForm({...bookingForm, coworkingId: e.target.value})} className="w-full p-2.5 rounded-lg border dark:border-zinc-700 dark:bg-zinc-800"><option value="">-- Select a space --</option>{spaces.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}</select></div>
+              <div>
+                <label className="block text-sm mb-1">Customer</label>
+                <select required value={bookingForm.user} onChange={e => setBookingForm({...bookingForm, user: e.target.value})} className="w-full p-2.5 rounded-lg border dark:border-zinc-700 dark:bg-zinc-800">
+                  <option value="">-- Select a customer --</option>
+                  {usersList.map((u: any) => (<option key={u._id} value={u._id}>{u.name}</option>))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm mb-1">Location / Space</label>
+                <select required value={bookingForm.coworkingId} onChange={e => setBookingForm({...bookingForm, coworkingId: e.target.value})} className="w-full p-2.5 rounded-lg border dark:border-zinc-700 dark:bg-zinc-800">
+                  <option value="">-- Select a space --</option>
+                  {/* 🟢 กรองเฉพาะ available และยังไม่ถูกลบ (New Booking) */}
+                  {spaces
+                    .filter(s => (!s.status || s.status === 'available') && !s.isDeleted)
+                    .map(s => <option key={s._id} value={s._id}>{s.name}</option>)
+                  }
+                </select>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div><label className="block text-sm mb-1">Desk No.</label><input required value={bookingForm.desk} onChange={e => setBookingForm({...bookingForm, desk: e.target.value})} className="w-full p-2.5 rounded-lg border dark:border-zinc-700 dark:bg-zinc-800" /></div>
                 <div><label className="block text-sm mb-1">Date</label><input type="date" required value={bookingForm.date} onChange={e => setBookingForm({...bookingForm, date: e.target.value})} className="w-full p-2.5 rounded-lg border dark:border-zinc-700 dark:bg-zinc-800 scheme-dark"/></div>
                 <div><label className="block text-sm mb-1">Start Time</label><input type="time" required value={bookingForm.startTime} onChange={e => setBookingForm({...bookingForm, startTime: e.target.value})} className="w-full p-2.5 rounded-lg border dark:border-zinc-700 dark:bg-zinc-800 scheme-dark"/></div>
                 <div><label className="block text-sm mb-1">End Time</label><input type="time" required value={bookingForm.endTime} onChange={e => setBookingForm({...bookingForm, endTime: e.target.value})} className="w-full p-2.5 rounded-lg border dark:border-zinc-700 dark:bg-zinc-800 scheme-dark"/></div>
               </div>
-              <button type="submit" disabled={isSubmitting} className="w-full py-3 mt-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold flex justify-center items-center gap-2">{isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Confirm Booking'}</button>
+              <button type="submit" disabled={isSubmitting} className="w-full py-3 mt-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold flex justify-center items-center gap-2">
+                {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Confirm Booking'}
+              </button>
             </form>
           </div>
         </div>
